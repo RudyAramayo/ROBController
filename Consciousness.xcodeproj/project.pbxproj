@@ -1,0 +1,562 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		D49D755E27FFE52000142E26 /* AutoNetClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49D755C27FFE52000142E26 /* AutoNetClient.swift */; };
+		D49D755F27FFE52000142E26 /* AutoNetClientConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49D755D27FFE52000142E26 /* AutoNetClientConnection.swift */; };
+		D49D756127FFE52800142E26 /* AutoNetDataTransferProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49D756027FFE52800142E26 /* AutoNetDataTransferProtocol.swift */; };
+		EA6B40C820B0912500422C7C /* DaydreamView.m in Sources */ = {isa = PBXBuildFile; fileRef = EA6B40C720B0912400422C7C /* DaydreamView.m */; };
+		EA6B40CA20B0938B00422C7C /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA6B40C920B0938B00422C7C /* CoreMotion.framework */; };
+		EA8727DC20A924C00015A7DF /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = EA8727DB20A924C00015A7DF /* AppDelegate.m */; };
+		EA8727DF20A924C00015A7DF /* ConsciousViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = EA8727DE20A924C00015A7DF /* ConsciousViewController.mm */; };
+		EA8727E220A924C00015A7DF /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = EA8727E020A924C00015A7DF /* Main.storyboard */; };
+		EA8727E420A924C20015A7DF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EA8727E320A924C20015A7DF /* Assets.xcassets */; };
+		EA8727E720A924C20015A7DF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = EA8727E520A924C20015A7DF /* LaunchScreen.storyboard */; };
+		EA8727EA20A924C20015A7DF /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = EA8727E920A924C20015A7DF /* main.m */; };
+		EA8727FC20A925570015A7DF /* EAGLView.mm in Sources */ = {isa = PBXBuildFile; fileRef = EA8727F320A925560015A7DF /* EAGLView.mm */; };
+		EA8727FD20A925570015A7DF /* BufferManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA8727F820A925570015A7DF /* BufferManager.cpp */; };
+		EA8727FE20A925570015A7DF /* AudioController.mm in Sources */ = {isa = PBXBuildFile; fileRef = EA8727F920A925570015A7DF /* AudioController.mm */; };
+		EA8727FF20A925570015A7DF /* FFTHelper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA8727FA20A925570015A7DF /* FFTHelper.cpp */; };
+		EA87280020A925570015A7DF /* DCRejectionFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA8727FB20A925570015A7DF /* DCRejectionFilter.cpp */; };
+		EA87280A20A9256E0015A7DF /* CAXException.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA87280520A9256E0015A7DF /* CAXException.cpp */; };
+		EA87280B20A9256E0015A7DF /* CAStreamBasicDescription.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA87280720A9256E0015A7DF /* CAStreamBasicDescription.cpp */; };
+		EA87280C20A9256E0015A7DF /* CADebugMacros.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA87280820A9256E0015A7DF /* CADebugMacros.cpp */; };
+		EA87281220A925B60015A7DF /* button_press.caf in Resources */ = {isa = PBXBuildFile; fileRef = EA87281120A925B60015A7DF /* button_press.caf */; };
+		EA87281A20A925C60015A7DF /* mute_off.png in Resources */ = {isa = PBXBuildFile; fileRef = EA87281420A925C60015A7DF /* mute_off.png */; };
+		EA87281B20A925C60015A7DF /* fft_off.png in Resources */ = {isa = PBXBuildFile; fileRef = EA87281520A925C60015A7DF /* fft_off.png */; };
+		EA87281C20A925C60015A7DF /* mute_on.png in Resources */ = {isa = PBXBuildFile; fileRef = EA87281620A925C60015A7DF /* mute_on.png */; };
+		EA87281D20A925C60015A7DF /* oscilloscope.png in Resources */ = {isa = PBXBuildFile; fileRef = EA87281720A925C60015A7DF /* oscilloscope.png */; };
+		EA87281E20A925C60015A7DF /* sonogram.png in Resources */ = {isa = PBXBuildFile; fileRef = EA87281820A925C60015A7DF /* sonogram.png */; };
+		EA87281F20A925C60015A7DF /* fft_on.png in Resources */ = {isa = PBXBuildFile; fileRef = EA87281920A925C60015A7DF /* fft_on.png */; };
+		EA87282220A926BD0015A7DF /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA87282120A926BD0015A7DF /* UIKit.framework */; };
+		EA87282420A926C20015A7DF /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA87282320A926C20015A7DF /* Foundation.framework */; };
+		EA87282620A926C70015A7DF /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA87282520A926C70015A7DF /* AVFoundation.framework */; };
+		EA87282820A926CB0015A7DF /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA87282720A926CB0015A7DF /* Accelerate.framework */; };
+		EA87282A20A926D00015A7DF /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA87282920A926D00015A7DF /* QuartzCore.framework */; };
+		EA87282C20A926D60015A7DF /* OpenGLES.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA87282B20A926D60015A7DF /* OpenGLES.framework */; };
+		EA87282E20A926DA0015A7DF /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA87282D20A926DA0015A7DF /* AudioToolbox.framework */; };
+		EA87283020A926DE0015A7DF /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA87282F20A926DE0015A7DF /* CoreGraphics.framework */; };
+		EA87283320AA09C90015A7DF /* Speech.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA87283220AA09C90015A7DF /* Speech.framework */; };
+		EA87289820AA7A170015A7DF /* MultipeerConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA87289720AA7A170015A7DF /* MultipeerConnectivity.framework */; };
+		EA87289B20AA900E0015A7DF /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA87289A20AA900E0015A7DF /* CoreLocation.framework */; };
+		EA87289F20AB2B360015A7DF /* Icon_512.png in Resources */ = {isa = PBXBuildFile; fileRef = EA87289E20AB2B360015A7DF /* Icon_512.png */; };
+		EA87299520AB67D00015A7DF /* CoreML.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA87299420AB67D00015A7DF /* CoreML.framework */; };
+		EA8729A320AB79690015A7DF /* Vision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA8729A220AB79690015A7DF /* Vision.framework */; };
+		EA8729A520AB7CF20015A7DF /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA8729A420AB7CF20015A7DF /* CoreMedia.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		D49D755C27FFE52000142E26 /* AutoNetClient.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AutoNetClient.swift; sourceTree = "<group>"; };
+		D49D755D27FFE52000142E26 /* AutoNetClientConnection.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AutoNetClientConnection.swift; sourceTree = "<group>"; };
+		D49D756027FFE52800142E26 /* AutoNetDataTransferProtocol.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AutoNetDataTransferProtocol.swift; sourceTree = "<group>"; };
+		EA6B40C620B0912400422C7C /* DaydreamView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DaydreamView.h; sourceTree = "<group>"; };
+		EA6B40C720B0912400422C7C /* DaydreamView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DaydreamView.m; sourceTree = "<group>"; };
+		EA6B40C920B0938B00422C7C /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
+		EA8727D720A924C00015A7DF /* Consciousness.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Consciousness.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EA8727DA20A924C00015A7DF /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
+		EA8727DB20A924C00015A7DF /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
+		EA8727DD20A924C00015A7DF /* ConsciousViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ConsciousViewController.h; sourceTree = "<group>"; };
+		EA8727DE20A924C00015A7DF /* ConsciousViewController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ConsciousViewController.mm; sourceTree = "<group>"; };
+		EA8727E120A924C00015A7DF /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		EA8727E320A924C20015A7DF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		EA8727E620A924C20015A7DF /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		EA8727E820A924C20015A7DF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		EA8727E920A924C20015A7DF /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		EA8727F220A925560015A7DF /* FFTHelper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FFTHelper.h; sourceTree = "<group>"; };
+		EA8727F320A925560015A7DF /* EAGLView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EAGLView.mm; sourceTree = "<group>"; };
+		EA8727F420A925570015A7DF /* BufferManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BufferManager.h; sourceTree = "<group>"; };
+		EA8727F520A925570015A7DF /* AudioController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AudioController.h; sourceTree = "<group>"; };
+		EA8727F620A925570015A7DF /* EAGLView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EAGLView.h; sourceTree = "<group>"; };
+		EA8727F720A925570015A7DF /* DCRejectionFilter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DCRejectionFilter.h; sourceTree = "<group>"; };
+		EA8727F820A925570015A7DF /* BufferManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BufferManager.cpp; sourceTree = "<group>"; };
+		EA8727F920A925570015A7DF /* AudioController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = AudioController.mm; sourceTree = "<group>"; };
+		EA8727FA20A925570015A7DF /* FFTHelper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FFTHelper.cpp; sourceTree = "<group>"; };
+		EA8727FB20A925570015A7DF /* DCRejectionFilter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DCRejectionFilter.cpp; sourceTree = "<group>"; };
+		EA87280220A9256E0015A7DF /* CAMath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CAMath.h; path = Consciousness/AurioTouchView/PublicUtility/CAMath.h; sourceTree = SOURCE_ROOT; };
+		EA87280320A9256E0015A7DF /* CABitOperations.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CABitOperations.h; path = Consciousness/AurioTouchView/PublicUtility/CABitOperations.h; sourceTree = SOURCE_ROOT; };
+		EA87280420A9256E0015A7DF /* CAXException.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CAXException.h; path = Consciousness/AurioTouchView/PublicUtility/CAXException.h; sourceTree = SOURCE_ROOT; };
+		EA87280520A9256E0015A7DF /* CAXException.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CAXException.cpp; path = Consciousness/AurioTouchView/PublicUtility/CAXException.cpp; sourceTree = SOURCE_ROOT; };
+		EA87280620A9256E0015A7DF /* CADebugMacros.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CADebugMacros.h; path = Consciousness/AurioTouchView/PublicUtility/CADebugMacros.h; sourceTree = SOURCE_ROOT; };
+		EA87280720A9256E0015A7DF /* CAStreamBasicDescription.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CAStreamBasicDescription.cpp; path = Consciousness/AurioTouchView/PublicUtility/CAStreamBasicDescription.cpp; sourceTree = SOURCE_ROOT; };
+		EA87280820A9256E0015A7DF /* CADebugMacros.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CADebugMacros.cpp; path = Consciousness/AurioTouchView/PublicUtility/CADebugMacros.cpp; sourceTree = SOURCE_ROOT; };
+		EA87280920A9256E0015A7DF /* CAStreamBasicDescription.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CAStreamBasicDescription.h; path = Consciousness/AurioTouchView/PublicUtility/CAStreamBasicDescription.h; sourceTree = SOURCE_ROOT; };
+		EA87281120A925B60015A7DF /* button_press.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = button_press.caf; sourceTree = "<group>"; };
+		EA87281420A925C60015A7DF /* mute_off.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = mute_off.png; path = Consciousness/AurioTouchView/images/mute_off.png; sourceTree = SOURCE_ROOT; };
+		EA87281520A925C60015A7DF /* fft_off.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = fft_off.png; path = Consciousness/AurioTouchView/images/fft_off.png; sourceTree = SOURCE_ROOT; };
+		EA87281620A925C60015A7DF /* mute_on.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = mute_on.png; path = Consciousness/AurioTouchView/images/mute_on.png; sourceTree = SOURCE_ROOT; };
+		EA87281720A925C60015A7DF /* oscilloscope.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = oscilloscope.png; path = Consciousness/AurioTouchView/images/oscilloscope.png; sourceTree = SOURCE_ROOT; };
+		EA87281820A925C60015A7DF /* sonogram.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = sonogram.png; path = Consciousness/AurioTouchView/images/sonogram.png; sourceTree = SOURCE_ROOT; };
+		EA87281920A925C60015A7DF /* fft_on.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = fft_on.png; path = Consciousness/AurioTouchView/images/fft_on.png; sourceTree = SOURCE_ROOT; };
+		EA87282120A926BD0015A7DF /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
+		EA87282320A926C20015A7DF /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		EA87282520A926C70015A7DF /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
+		EA87282720A926CB0015A7DF /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
+		EA87282920A926D00015A7DF /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		EA87282B20A926D60015A7DF /* OpenGLES.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGLES.framework; path = System/Library/Frameworks/OpenGLES.framework; sourceTree = SDKROOT; };
+		EA87282D20A926DA0015A7DF /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
+		EA87282F20A926DE0015A7DF /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		EA87283120A9276B0015A7DF /* CADebugPrintf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CADebugPrintf.h; sourceTree = "<group>"; };
+		EA87283220AA09C90015A7DF /* Speech.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Speech.framework; path = System/Library/Frameworks/Speech.framework; sourceTree = SDKROOT; };
+		EA87289720AA7A170015A7DF /* MultipeerConnectivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MultipeerConnectivity.framework; path = System/Library/Frameworks/MultipeerConnectivity.framework; sourceTree = SDKROOT; };
+		EA87289A20AA900E0015A7DF /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
+		EA87289E20AB2B360015A7DF /* Icon_512.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon_512.png; sourceTree = "<group>"; };
+		EA87298F20AB676C0015A7DF /* Consciousness-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Consciousness-Bridging-Header.h"; sourceTree = "<group>"; };
+		EA87299420AB67D00015A7DF /* CoreML.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreML.framework; path = System/Library/Frameworks/CoreML.framework; sourceTree = SDKROOT; };
+		EA8729A220AB79690015A7DF /* Vision.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Vision.framework; path = System/Library/Frameworks/Vision.framework; sourceTree = SDKROOT; };
+		EA8729A420AB7CF20015A7DF /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		EA8727D420A924C00015A7DF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EA6B40CA20B0938B00422C7C /* CoreMotion.framework in Frameworks */,
+				EA8729A520AB7CF20015A7DF /* CoreMedia.framework in Frameworks */,
+				EA8729A320AB79690015A7DF /* Vision.framework in Frameworks */,
+				EA87299520AB67D00015A7DF /* CoreML.framework in Frameworks */,
+				EA87289B20AA900E0015A7DF /* CoreLocation.framework in Frameworks */,
+				EA87289820AA7A170015A7DF /* MultipeerConnectivity.framework in Frameworks */,
+				EA87283320AA09C90015A7DF /* Speech.framework in Frameworks */,
+				EA87283020A926DE0015A7DF /* CoreGraphics.framework in Frameworks */,
+				EA87282E20A926DA0015A7DF /* AudioToolbox.framework in Frameworks */,
+				EA87282C20A926D60015A7DF /* OpenGLES.framework in Frameworks */,
+				EA87282A20A926D00015A7DF /* QuartzCore.framework in Frameworks */,
+				EA87282820A926CB0015A7DF /* Accelerate.framework in Frameworks */,
+				EA87282620A926C70015A7DF /* AVFoundation.framework in Frameworks */,
+				EA87282420A926C20015A7DF /* Foundation.framework in Frameworks */,
+				EA87282220A926BD0015A7DF /* UIKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D4E673B12800AADF009FE43C /* AutoNetClient */ = {
+			isa = PBXGroup;
+			children = (
+				D49D755D27FFE52000142E26 /* AutoNetClientConnection.swift */,
+				D49D756027FFE52800142E26 /* AutoNetDataTransferProtocol.swift */,
+				D49D755C27FFE52000142E26 /* AutoNetClient.swift */,
+			);
+			path = AutoNetClient;
+			sourceTree = "<group>";
+		};
+		EA8727CE20A924C00015A7DF = {
+			isa = PBXGroup;
+			children = (
+				EA8727D920A924C00015A7DF /* Consciousness */,
+				EA8727D820A924C00015A7DF /* Products */,
+				EA87282020A926BD0015A7DF /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		EA8727D820A924C00015A7DF /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				EA8727D720A924C00015A7DF /* Consciousness.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		EA8727D920A924C00015A7DF /* Consciousness */ = {
+			isa = PBXGroup;
+			children = (
+				EA8727E020A924C00015A7DF /* Main.storyboard */,
+				EA8727E520A924C20015A7DF /* LaunchScreen.storyboard */,
+				EA8727F120A924F40015A7DF /* AurioTouch */,
+				D4E673B12800AADF009FE43C /* AutoNetClient */,
+				EA8727DA20A924C00015A7DF /* AppDelegate.h */,
+				EA8727DB20A924C00015A7DF /* AppDelegate.m */,
+				EA8727DD20A924C00015A7DF /* ConsciousViewController.h */,
+				EA8727DE20A924C00015A7DF /* ConsciousViewController.mm */,
+				EA6B40C620B0912400422C7C /* DaydreamView.h */,
+				EA6B40C720B0912400422C7C /* DaydreamView.m */,
+				EA8727E320A924C20015A7DF /* Assets.xcassets */,
+				EA8727E820A924C20015A7DF /* Info.plist */,
+				EA8727E920A924C20015A7DF /* main.m */,
+				EA87289E20AB2B360015A7DF /* Icon_512.png */,
+				EA87298F20AB676C0015A7DF /* Consciousness-Bridging-Header.h */,
+			);
+			path = Consciousness;
+			sourceTree = "<group>";
+		};
+		EA8727F120A924F40015A7DF /* AurioTouch */ = {
+			isa = PBXGroup;
+			children = (
+				EA8727F620A925570015A7DF /* EAGLView.h */,
+				EA8727F320A925560015A7DF /* EAGLView.mm */,
+				EA8727F520A925570015A7DF /* AudioController.h */,
+				EA8727F920A925570015A7DF /* AudioController.mm */,
+				EA8727F420A925570015A7DF /* BufferManager.h */,
+				EA8727F820A925570015A7DF /* BufferManager.cpp */,
+				EA8727F220A925560015A7DF /* FFTHelper.h */,
+				EA8727FA20A925570015A7DF /* FFTHelper.cpp */,
+				EA8727F720A925570015A7DF /* DCRejectionFilter.h */,
+				EA8727FB20A925570015A7DF /* DCRejectionFilter.cpp */,
+				EA87281320A925BD0015A7DF /* images */,
+				EA87280D20A925730015A7DF /* audio */,
+				EA87280120A925610015A7DF /* PublicUtility */,
+			);
+			path = AurioTouch;
+			sourceTree = "<group>";
+		};
+		EA87280120A925610015A7DF /* PublicUtility */ = {
+			isa = PBXGroup;
+			children = (
+				EA87283120A9276B0015A7DF /* CADebugPrintf.h */,
+				EA87280320A9256E0015A7DF /* CABitOperations.h */,
+				EA87280820A9256E0015A7DF /* CADebugMacros.cpp */,
+				EA87280620A9256E0015A7DF /* CADebugMacros.h */,
+				EA87280220A9256E0015A7DF /* CAMath.h */,
+				EA87280720A9256E0015A7DF /* CAStreamBasicDescription.cpp */,
+				EA87280920A9256E0015A7DF /* CAStreamBasicDescription.h */,
+				EA87280520A9256E0015A7DF /* CAXException.cpp */,
+				EA87280420A9256E0015A7DF /* CAXException.h */,
+			);
+			path = PublicUtility;
+			sourceTree = "<group>";
+		};
+		EA87280D20A925730015A7DF /* audio */ = {
+			isa = PBXGroup;
+			children = (
+				EA87281120A925B60015A7DF /* button_press.caf */,
+			);
+			path = audio;
+			sourceTree = "<group>";
+		};
+		EA87281320A925BD0015A7DF /* images */ = {
+			isa = PBXGroup;
+			children = (
+				EA87281520A925C60015A7DF /* fft_off.png */,
+				EA87281920A925C60015A7DF /* fft_on.png */,
+				EA87281420A925C60015A7DF /* mute_off.png */,
+				EA87281620A925C60015A7DF /* mute_on.png */,
+				EA87281720A925C60015A7DF /* oscilloscope.png */,
+				EA87281820A925C60015A7DF /* sonogram.png */,
+			);
+			path = images;
+			sourceTree = "<group>";
+		};
+		EA87282020A926BD0015A7DF /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				EA6B40C920B0938B00422C7C /* CoreMotion.framework */,
+				EA8729A420AB7CF20015A7DF /* CoreMedia.framework */,
+				EA8729A220AB79690015A7DF /* Vision.framework */,
+				EA87299420AB67D00015A7DF /* CoreML.framework */,
+				EA87289A20AA900E0015A7DF /* CoreLocation.framework */,
+				EA87289720AA7A170015A7DF /* MultipeerConnectivity.framework */,
+				EA87283220AA09C90015A7DF /* Speech.framework */,
+				EA87282F20A926DE0015A7DF /* CoreGraphics.framework */,
+				EA87282D20A926DA0015A7DF /* AudioToolbox.framework */,
+				EA87282B20A926D60015A7DF /* OpenGLES.framework */,
+				EA87282920A926D00015A7DF /* QuartzCore.framework */,
+				EA87282720A926CB0015A7DF /* Accelerate.framework */,
+				EA87282520A926C70015A7DF /* AVFoundation.framework */,
+				EA87282320A926C20015A7DF /* Foundation.framework */,
+				EA87282120A926BD0015A7DF /* UIKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		EA8727D620A924C00015A7DF /* Consciousness */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EA8727ED20A924C20015A7DF /* Build configuration list for PBXNativeTarget "Consciousness" */;
+			buildPhases = (
+				EA8727D320A924C00015A7DF /* Sources */,
+				EA8727D420A924C00015A7DF /* Frameworks */,
+				EA8727D520A924C00015A7DF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Consciousness;
+			productName = Consciousness;
+			productReference = EA8727D720A924C00015A7DF /* Consciousness.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		EA8727CF20A924C00015A7DF /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0940;
+				ORGANIZATIONNAME = OrbitusRobotics;
+				TargetAttributes = {
+					EA8727D620A924C00015A7DF = {
+						CreatedOnToolsVersion = 9.4;
+						LastSwiftMigration = 0940;
+					};
+				};
+			};
+			buildConfigurationList = EA8727D220A924C00015A7DF /* Build configuration list for PBXProject "Consciousness" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = EA8727CE20A924C00015A7DF;
+			productRefGroup = EA8727D820A924C00015A7DF /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				EA8727D620A924C00015A7DF /* Consciousness */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		EA8727D520A924C00015A7DF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EA87281E20A925C60015A7DF /* sonogram.png in Resources */,
+				EA87281C20A925C60015A7DF /* mute_on.png in Resources */,
+				EA87281220A925B60015A7DF /* button_press.caf in Resources */,
+				EA87289F20AB2B360015A7DF /* Icon_512.png in Resources */,
+				EA87281D20A925C60015A7DF /* oscilloscope.png in Resources */,
+				EA8727E720A924C20015A7DF /* LaunchScreen.storyboard in Resources */,
+				EA87281F20A925C60015A7DF /* fft_on.png in Resources */,
+				EA8727E420A924C20015A7DF /* Assets.xcassets in Resources */,
+				EA8727E220A924C00015A7DF /* Main.storyboard in Resources */,
+				EA87281B20A925C60015A7DF /* fft_off.png in Resources */,
+				EA87281A20A925C60015A7DF /* mute_off.png in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		EA8727D320A924C00015A7DF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EA87280A20A9256E0015A7DF /* CAXException.cpp in Sources */,
+				EA8727FF20A925570015A7DF /* FFTHelper.cpp in Sources */,
+				EA8727DF20A924C00015A7DF /* ConsciousViewController.mm in Sources */,
+				EA8727FD20A925570015A7DF /* BufferManager.cpp in Sources */,
+				D49D755E27FFE52000142E26 /* AutoNetClient.swift in Sources */,
+				D49D755F27FFE52000142E26 /* AutoNetClientConnection.swift in Sources */,
+				EA8727EA20A924C20015A7DF /* main.m in Sources */,
+				EA6B40C820B0912500422C7C /* DaydreamView.m in Sources */,
+				EA8727DC20A924C00015A7DF /* AppDelegate.m in Sources */,
+				D49D756127FFE52800142E26 /* AutoNetDataTransferProtocol.swift in Sources */,
+				EA8727FE20A925570015A7DF /* AudioController.mm in Sources */,
+				EA87280020A925570015A7DF /* DCRejectionFilter.cpp in Sources */,
+				EA8727FC20A925570015A7DF /* EAGLView.mm in Sources */,
+				EA87280B20A9256E0015A7DF /* CAStreamBasicDescription.cpp in Sources */,
+				EA87280C20A9256E0015A7DF /* CADebugMacros.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		EA8727E020A924C00015A7DF /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				EA8727E120A924C00015A7DF /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		EA8727E520A924C20015A7DF /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				EA8727E620A924C20015A7DF /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		EA8727EB20A924C20015A7DF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		EA8727EC20A924C20015A7DF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		EA8727EE20A924C20015A7DF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 975CAGD5EW;
+				INFOPLIST_FILE = Consciousness/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.orbitusrobotics.Consciousness;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "Consciousness/Consciousness-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		EA8727EF20A924C20015A7DF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 975CAGD5EW;
+				INFOPLIST_FILE = Consciousness/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.orbitusrobotics.Consciousness;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "Consciousness/Consciousness-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		EA8727D220A924C00015A7DF /* Build configuration list for PBXProject "Consciousness" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA8727EB20A924C20015A7DF /* Debug */,
+				EA8727EC20A924C20015A7DF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EA8727ED20A924C20015A7DF /* Build configuration list for PBXNativeTarget "Consciousness" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA8727EE20A924C20015A7DF /* Debug */,
+				EA8727EF20A924C20015A7DF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = EA8727CF20A924C00015A7DF /* Project object */;
+}
