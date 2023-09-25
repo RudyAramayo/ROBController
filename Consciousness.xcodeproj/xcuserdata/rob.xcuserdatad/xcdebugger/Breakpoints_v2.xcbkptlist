@@ -3,4 +3,325 @@
    uuid = "CD80EFCB-70C7-46F2-94C4-D2A6D5B575DC"
    type = "1"
    version = "2.0">
+   <Breakpoints>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "7C411EB2-0B2C-4C5C-A0A7-E6B3E0D8ACDB"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Consciousness/ConsciousViewController.mm"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "832"
+            endingLineNumber = "832"
+            landmarkName = "-didReceiveData:"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "C5BD0BC6-EB1D-49D3-8B87-CBA44360DA28"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Consciousness/ConsciousViewController.mm"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "859"
+            endingLineNumber = "859"
+            landmarkName = "-didReceiveData:"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "0CC1BDFC-8259-4917-8EB1-3F27DB0C27E6"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Consciousness/ConsciousViewController.mm"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "855"
+            endingLineNumber = "855"
+            landmarkName = "-didReceiveData:"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "1A541B50-2E2D-46C1-AADF-B5F7561268FF"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Consciousness/ConsciousViewController.mm"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "565"
+            endingLineNumber = "565"
+            landmarkName = "-startRecognizer"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "7A6505DF-24EA-4BC7-BB14-716BC7CD7EF5"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Consciousness/ConsciousViewController.mm"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "263"
+            endingLineNumber = "263"
+            landmarkName = "-viewDidLoad"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "BD36080C-FB8F-4BD0-8639-D08971ABD8D1"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Consciousness/ConsciousViewController.mm"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "542"
+            endingLineNumber = "542"
+            landmarkName = "-startRecognizer"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "BD36080C-FB8F-4BD0-8639-D08971ABD8D1 - 903357425ce90397"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "__42-[ConsciousViewController startRecognizer]_block_invoke"
+                  moduleName = "Consciousness"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/rob/Documents/Dev/R.O.B./Consciousness%20v0.4/Consciousness/ConsciousViewController.mm"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "546"
+                  endingLineNumber = "546"
+                  offsetFromSymbolStart = "132">
+               </Location>
+               <Location
+                  uuid = "BD36080C-FB8F-4BD0-8639-D08971ABD8D1 - 903357425ce90355"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "__42-[ConsciousViewController startRecognizer]_block_invoke"
+                  moduleName = "Consciousness"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/rob/Documents/Dev/R.O.B./Consciousness%20v0.4/Consciousness/ConsciousViewController.mm"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "544"
+                  endingLineNumber = "544"
+                  offsetFromSymbolStart = "80">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "E4897F15-DF75-4B8C-BAE7-88A561068D8C"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Consciousness/ConsciousViewController.mm"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "309"
+            endingLineNumber = "309"
+            landmarkName = "-speechAudioInit"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "74BB6380-3129-4D9D-AEC4-9DAA1B3A8398"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Consciousness/ConsciousViewController.mm"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "690"
+            endingLineNumber = "690"
+            landmarkName = "-speechRecognitionTask:didFinishRecognition:"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "74BB6380-3129-4D9D-AEC4-9DAA1B3A8398 - 2940b27f878bc37d"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "-[ConsciousViewController speechRecognitionTask:didFinishRecognition:]"
+                  moduleName = "Consciousness"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/rob/Documents/Dev/R.O.B./Consciousness%20v0.4/Consciousness/ConsciousViewController.mm"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "693"
+                  endingLineNumber = "693"
+                  offsetFromSymbolStart = "72">
+               </Location>
+               <Location
+                  uuid = "74BB6380-3129-4D9D-AEC4-9DAA1B3A8398 - 2940b27f878bc3c0"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "-[ConsciousViewController speechRecognitionTask:didFinishRecognition:]"
+                  moduleName = "Consciousness"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/rob/Documents/Dev/R.O.B./Consciousness%20v0.4/Consciousness/ConsciousViewController.mm"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "690"
+                  endingLineNumber = "690"
+                  offsetFromSymbolStart = "72">
+               </Location>
+               <Location
+                  uuid = "74BB6380-3129-4D9D-AEC4-9DAA1B3A8398 - 2940b27f878bc3bf"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "-[ConsciousViewController speechRecognitionTask:didFinishRecognition:]"
+                  moduleName = "Consciousness"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/rob/Documents/Dev/R.O.B./Consciousness%20v0.4/Consciousness/ConsciousViewController.mm"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "691"
+                  endingLineNumber = "691"
+                  offsetFromSymbolStart = "72">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "C83DA748-537B-4016-B72F-0C565763EFE9"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Consciousness/ConsciousViewController.mm"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "535"
+            endingLineNumber = "535"
+            landmarkName = "-startRecognizer"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "C83DA748-537B-4016-B72F-0C565763EFE9 - 5416fe38ff126501"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "-[ConsciousViewController startRecognizer]"
+                  moduleName = "Consciousness"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/rob/Documents/Dev/R.O.B./Consciousness%20v0.4/Consciousness/ConsciousViewController.mm"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "538"
+                  endingLineNumber = "538"
+                  offsetFromSymbolStart = "204">
+               </Location>
+               <Location
+                  uuid = "C83DA748-537B-4016-B72F-0C565763EFE9 - 5416fe38ff126501"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "-[ConsciousViewController startRecognizer]"
+                  moduleName = "Consciousness"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/rob/Documents/Dev/R.O.B./Consciousness%20v0.4/Consciousness/ConsciousViewController.mm"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "538"
+                  endingLineNumber = "538"
+                  offsetFromSymbolStart = "172">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "BAA81C37-6AD6-46D7-ADC0-499D76FCAB0E"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Consciousness/ConsciousViewController.mm"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "414"
+            endingLineNumber = "414"
+            landmarkName = "-recordButtonTouchDown:"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "6E1F3341-49BB-41FD-9F9D-7864876E3D31"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Consciousness/ConsciousViewController.mm"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "592"
+            endingLineNumber = "592"
+            landmarkName = "-startRecognizer"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "6E1F3341-49BB-41FD-9F9D-7864876E3D31 - 9797b5b00f3b47f6"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "__42-[ConsciousViewController startRecognizer]_block_invoke_2"
+                  moduleName = "Consciousness"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/rob/Documents/Dev/R.O.B./Consciousness%20v0.4/Consciousness/ConsciousViewController.mm"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "592"
+                  endingLineNumber = "592"
+                  offsetFromSymbolStart = "856">
+               </Location>
+               <Location
+                  uuid = "6E1F3341-49BB-41FD-9F9D-7864876E3D31 - 9797b5b00f3b47d5"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "__42-[ConsciousViewController startRecognizer]_block_invoke_2"
+                  moduleName = "Consciousness"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/rob/Documents/Dev/R.O.B./Consciousness%20v0.4/Consciousness/ConsciousViewController.mm"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "593"
+                  endingLineNumber = "593"
+                  offsetFromSymbolStart = "856">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+   </Breakpoints>
 </Bucket>

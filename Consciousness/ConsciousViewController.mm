@@ -25,6 +25,7 @@
     
 }
 @property (readwrite, assign) bool isAnimating;
+@property (readwrite, assign) bool isAnimatingControllerMenu;
 
 @property (readwrite, assign) bool flipper_FORWARD_isDown;
 @property (readwrite, assign) bool flipper_RELAX_isDown;
@@ -54,10 +55,16 @@
 @property (nonatomic, strong) AVAudioEngine *audioEngine;
 @property (nonatomic, strong) AVSpeechSynthesizer *speechSynthesizer;
 @property (nonatomic, assign) BOOL isSpeaking;
+@property (atomic, assign) BOOL safeToStartRecording;
 
 @property (nonatomic, retain) IBOutlet UITableView * languageTableView;
-
+@property (readwrite, retain) IBOutlet RPLidarPolarView *rpLidarPolarView;
+@property (readwrite, retain) IBOutlet UIStackView *commandSheetStackView;
 @property (nonatomic, retain) IBOutlet UITextView * textView;
+@property (atomic, retain) NSString *currentUserVerbalQueryString;
+@property (nonatomic, retain) IBOutlet UILabel * locationLabel;
+@property (nonatomic, retain) IBOutlet UILabel * rotationLabel;
+
 //@property (nonatomic, retain) IBOutlet UIButton * recordButton; //auto start in english instead? change upon language  selection?
 
 @property (readwrite, retain) CLLocationManager *locationManager;
@@ -250,8 +257,7 @@
                                 self.tred_BRAKELOCK,
                                 self.flipper_FORWARD_isDown, self.flipper_RELAX_isDown, self.flipper_BACKWARD_isDown, self.flipper_BRAKELOCK,
                                 self.lact_BACK_isDown, self.lact_GRAVITY_toggle, self.lact_FRONT_isDown,
-                                self.speed, self.speed_PlayPause_toggle, self.speed_ForwardReverse_toggle, @"self.textView.text"];
-        //TODO: Fix the @"self.textView.text" because it is used as model storage and must only be accessed from the main thread
+                                self.speed, self.speed_PlayPause_toggle, self.speed_ForwardReverse_toggle, self.currentUserVerbalQueryString];
         //NSLog(@"dataString = %@", dataString);
         NSDictionary *messageDict = @{@"message":dataString, @"sender":[[[UIDevice currentDevice] identifierForVendor] UUIDString]};
         NSError *error = nil;
@@ -287,6 +293,7 @@
     //[glview startAnimation];
     //---
     
+    self.safeToStartRecording = true;
     [self speechAudioInit];
 }
 
@@ -298,12 +305,12 @@
 
 - (void) speechAudioInit
 {
-    dispatch_async(dispatch_get_main_queue(), ^(){
-        self.languageTableView.backgroundColor = [UIColor clearColor];
-    });
+    //dispatch_async(dispatch_get_main_queue(), ^(){
+    //    self.languageTableView.backgroundColor = [UIColor clearColor];
+    //});
     
-    [self closeMenu];
-    self.isAnimating = false;
+    //[self closeMenu];
+    //self.isAnimating = false;
     
     self.localeArray = @[
                          //English
@@ -398,47 +405,81 @@
                          ].mutableCopy;
     self.selectedLocaleIndex = 0;
     
-    [self recordButtonTapped:self];
+    //THis button controls auto speech recording
+    //[self recordButtonTapped:self];
 }
 
+- (IBAction)recordButtonTouchDown:(id)sender {
+    if (self.safeToStartRecording) {
+        self.safeToStartRecording = false;
+        [self setupSpeechRecognition];
+        NSLog(@"Recording has started...");
+    } else {
+        NSError *outError;
+        
+        [self.audioEngine prepare];
+        [self.audioEngine startAndReturnError:&outError];
+        if (outError)
+            NSLog(@"Error %@", outError);
+    }
+}
 
-- (IBAction)recordButtonTapped:(id)sender
-{
+- (IBAction)recordButtonTouchUp:(id)sender {
     if (self.audioEngine.isRunning)
     {
-        dispatch_async(dispatch_get_main_queue(), ^(){
-            self.textView.text = nil;
-        });
-        
-        [self.audioEngine stop];
-        [self.speechRequest endAudio];
-        //self.recordButton.enabled = false;
-        //[self.recordButton setTitle:@"Stopping..." forState:UIControlStateNormal];
-        NSLog(@"Recording has ended...");
-    }
-    else{
-        [self setupSpeechRecognition];
-        //[self.recordButton setTitle:@"Stop Recording" forState:UIControlStateNormal];
-        NSLog(@"Recording has started...");
+        [self.audioEngine pause];
+        //self.currentUserVerbalQueryString = @"";
+        //self.textView.text = @"";
     }
 }
-
 
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
 }
 
+- (void) openCommandSheetMenu {
+    self.commandSheetStackView.frame = CGRectMake(self.view.frame.size.width-self.commandSheetStackView.frame.size.width, 30, self.commandSheetStackView.frame.size.width, self.commandSheetStackView.frame.size.height);
+}
+
+- (void) closeCommandSheetMenu {
+    self.commandSheetStackView.frame = CGRectMake(self.view.frame.size.width, 30, self.commandSheetStackView.frame.size.width, self.commandSheetStackView.frame.size.height);
+}
 
 - (void) openMenu
 {
-    self.languageTableView.frame = CGRectMake(0, 0, self.languageTableView.frame.size.width,  self.languageTableView.frame.size.height);
+    self.languageTableView.frame = CGRectMake(0, 30, self.languageTableView.frame.size.width,  self.languageTableView.frame.size.height);
 }
-
 
 - (void) closeMenu
 {
-    self.languageTableView.frame = CGRectMake(-270, 0, self.languageTableView.frame.size.width,  self.languageTableView.frame.size.height);
+    self.languageTableView.frame = CGRectMake(-self.languageTableView.frame.size.width, 30, self.languageTableView.frame.size.width,  self.languageTableView.frame.size.height);
+}
+
+- (IBAction) controllerAction:(id)sender {
+    
+    NSLog(@"Toggle Controller Menu Action");
+    if (!self.isAnimatingControllerMenu)
+    {
+        self.isAnimatingControllerMenu = true;
+        if (self.commandSheetStackView.frame.origin.x >= self.view.frame.size.width)
+        {
+            [UIView animateWithDuration:0.33 animations:^(){
+                [self openCommandSheetMenu];
+            } completion:^(bool Finished){
+                self.isAnimatingControllerMenu = false;
+            }];
+        }
+        else
+        {
+            [UIView animateWithDuration:0.33 animations:^(){
+                [self closeCommandSheetMenu];
+            } completion:^(bool Finished){
+                self.isAnimatingControllerMenu = false;
+            }];
+        }
+    }
+
 }
 
 
@@ -509,7 +550,7 @@
             
             if (inputNode == nil) {
                 
-                NSLog(@"Unable to created a inputNode object");
+                NSLog(@"Unable to create an inputNode object");
             }
             
             //self.task = [self.speechRecognizer recognitionTaskWithRequest:self.speechRequest delegate:self];
@@ -519,13 +560,14 @@
                 
                 if (result != nil)
                 {
+                    self.currentUserVerbalQueryString = result.bestTranscription.formattedString;
                     dispatch_async(dispatch_get_main_queue(), ^(){
                         self.textView.text = result.bestTranscription.formattedString;
                     });
                     
                     isFinal = result.isFinal;
                     
-                    [self.speechSynthesizer speakUtterance:[AVSpeechUtterance speechUtteranceWithString:result.bestTranscription.formattedString]];
+                    //[self.speechSynthesizer speakUtterance:[AVSpeechUtterance speechUtteranceWithString:result.bestTranscription.formattedString]];
 
                     [self positionTextView];
                 }
@@ -546,6 +588,7 @@
                     //self.recordButton.enabled = true;
                     //[self.recordButton setTitle:@"Stop Recording" forState:UIControlStateNormal];
                     
+                    //This method will control auto listening at all times voer and over for continuous speech recognition
                     [self startRecognizer];
                 }
                 
@@ -565,7 +608,6 @@
                 NSLog(@"Error %@", outError);
             
             dispatch_async(dispatch_get_main_queue(), ^{
-                //self.textView.text = [self.textView.text stringByAppendingString:@"\n(Go ahead, I'm listening)" ];
                 [self positionTextView];
             });
             
@@ -650,10 +692,11 @@
     
     NSLog(@"%@",translatedString);
     
+    self.currentUserVerbalQueryString = translatedString;
     dispatch_async(dispatch_get_main_queue(), ^{
         self.textView.text = translatedString;
         [self positionTextView];
-        [self.speechSynthesizer speakUtterance:[AVSpeechUtterance speechUtteranceWithString:translatedString]];
+        //[self.speechSynthesizer speakUtterance:[AVSpeechUtterance speechUtteranceWithString:translatedString]];
     });
     
     if ([result isFinal]) {
@@ -679,6 +722,7 @@
     NSString * translatedString = [transcription formattedString];
     NSLog(@"didHypothesizeTranscription - %@", translatedString);
     dispatch_async(dispatch_get_main_queue(), ^{
+        self.currentUserVerbalQueryString = translatedString;
         self.textView.text = translatedString;
         [self positionTextView];
     });
@@ -771,12 +815,22 @@
     }
 }
 
+-(IBAction) reconnectAutoNet:(id)sender {
+    //Reconnection Proceedure...needs to be embedded into autoNetClient API and pushed to Github repo
+    [self.autoNetClient stop];
+    dispatch_async(dispatch_get_main_queue(), ^(){
+        self.chatConnectionStatus.backgroundColor = [UIColor redColor];
+    });
+
+    [self.autoNetClient startBrowsing];
+}
+
 - (void) didReceiveData:(NSData *)data {
     NSError *error = nil;
     NSSet *classSet = [NSSet setWithObjects:[NSDictionary class], [NSString class], nil];
     NSDictionary *messageDictionary = (NSDictionary*) [NSKeyedUnarchiver unarchivedObjectOfClasses:classSet fromData:data error:&error];
     NSString *msg = [messageDictionary valueForKey:@"message"];
-    NSString *displayName = [messageDictionary valueForKey:@"sender"];
+    NSString *sender = [messageDictionary valueForKey:@"sender"];
     if (error != nil) {
         NSLog(@"Error data recieved: %@", [error localizedDescription]);
     }
@@ -787,18 +841,36 @@
     dispatch_async(dispatch_get_main_queue(), ^(){
         self.chatConnectionStatus.backgroundColor = [UIColor greenColor];
     });
-    if ([msg isEqualToString:@"Clear input text message"])
-    {
+    if ([msg isEqualToString:@"Clear input text message"]) {
         dispatch_async(dispatch_get_main_queue(), ^(){
+            self.currentUserVerbalQueryString = @"";
             self.textView.text = @"";
         });
     }
-    if ([msg isEqualToString:@"Hey I got your message"])
-    {
+    if ([msg isEqualToString:@"Hey I got your message"]) {
         dispatch_async(dispatch_get_main_queue(), ^(){
             self.chatConnectionStatus.backgroundColor = [UIColor greenColor];
         });
-        
+    }
+    if ([sender isEqualToString:@"rpLidar"]) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            __weak ConsciousViewController *weakSelf = self;
+            
+            NSMutableArray *lidarScan = [msg componentsSeparatedByString:@"\n"].mutableCopy;
+            //x:y:z
+            NSArray *position = [lidarScan[0] componentsSeparatedByString:@":"];
+            [lidarScan removeObjectAtIndex:0];
+            weakSelf.locationLabel.text = [NSString stringWithFormat:@"x:%@ y:%@ z:%@", position[0], position[1], position[2]];
+            
+            //yaw:pitch:roll
+            NSArray *pose = [lidarScan[0] componentsSeparatedByString:@":"];
+            [lidarScan removeObjectAtIndex:0];
+            weakSelf.rotationLabel.text = [NSString stringWithFormat:@"yaw:%@ pitch:%@ roll:%@", pose[0], pose[1], pose[2]];
+            //laserPoint-distance:angle
+            
+            weakSelf.rpLidarPolarView.laserPoints = lidarScan;
+            [weakSelf.rpLidarPolarView setNeedsDisplay];
+        });
         
     }
 }
@@ -889,4 +961,13 @@
 {
     self.daydreamView.hidden = !self.daydreamView.hidden;
 }
+
+
+#pragma mark - RPLidar
+
+- (IBAction)rpLidarZoomAction:(UISlider *)sender {
+    self.rpLidarPolarView.zoomScale = sender.value;
+}
+
+
 @end

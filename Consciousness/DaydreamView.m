@@ -46,7 +46,7 @@
 - (void)drawRect:(CGRect)rect {
     // Drawing code
     CGContextRef context = UIGraphicsGetCurrentContext();
-    CGContextSetRGBStrokeColor(context, 0.0, 0.0, 0.0, 1.0);
+    CGContextSetRGBStrokeColor(context, 0.1, 0.2, 1.0, 1.0);
     CGContextSetLineWidth(context, 2.0);
     CGContextStrokeEllipseInRect(context, CGRectMake(0, 0, self.frame.size.width/2.0, self.frame.size.height));
     CGContextStrokeEllipseInRect(context, CGRectMake(self.frame.size.width/2.0, 0, self.frame.size.width/2.0, self.frame.size.height));

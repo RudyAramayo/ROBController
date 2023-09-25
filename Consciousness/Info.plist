@@ -23,11 +23,11 @@
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Spy on your audio</string>
 	<key>NSLocalNetworkUsageDescription</key>
-    <string>Network usage is required for macOS/iOS communication</string>
-    <key>NSBonjourServices</key>
-    <array>
-      <string>_roboNet._tcp</string>
-    </array>
+	<string>Network usage is required for macOS/iOS communication</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_roboNet._tcp</string>
+	</array>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Listen to your movement commands</string>
 	<key>NSLocationAlwaysUsageDescription</key>
@@ -42,8 +42,10 @@
 	<string>Spy on you</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
-	<key>UIMainStoryboardFile</key>
+	<key>UIMainStoryboardFile~ipad</key>
 	<string>Main</string>
+	<key>UIMainStoryboardFile~iphone</key>
+	<string>Main_iPhone</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>armv7</string>

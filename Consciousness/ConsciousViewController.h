@@ -15,6 +15,7 @@
 }
 
 - (IBAction) languageAction:(id)sender;
+- (IBAction) controllerAction:(id)sender;
 
 @end
 

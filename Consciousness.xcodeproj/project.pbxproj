@@ -10,6 +10,8 @@
 		D49D755E27FFE52000142E26 /* AutoNetClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49D755C27FFE52000142E26 /* AutoNetClient.swift */; };
 		D49D755F27FFE52000142E26 /* AutoNetClientConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49D755D27FFE52000142E26 /* AutoNetClientConnection.swift */; };
 		D49D756127FFE52800142E26 /* AutoNetDataTransferProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49D756027FFE52800142E26 /* AutoNetDataTransferProtocol.swift */; };
+		D4D049B82AC0BC820084EAFD /* Main_iPhone.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D4D049B62AC0BC820084EAFD /* Main_iPhone.storyboard */; };
+		D4D1592B28027EE000AFFA1E /* RPLidarPolarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D1592A28027EE000AFFA1E /* RPLidarPolarView.swift */; };
 		EA6B40C820B0912500422C7C /* DaydreamView.m in Sources */ = {isa = PBXBuildFile; fileRef = EA6B40C720B0912400422C7C /* DaydreamView.m */; };
 		EA6B40CA20B0938B00422C7C /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA6B40C920B0938B00422C7C /* CoreMotion.framework */; };
 		EA8727DC20A924C00015A7DF /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = EA8727DB20A924C00015A7DF /* AppDelegate.m */; };
@@ -54,6 +56,8 @@
 		D49D755C27FFE52000142E26 /* AutoNetClient.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AutoNetClient.swift; sourceTree = "<group>"; };
 		D49D755D27FFE52000142E26 /* AutoNetClientConnection.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AutoNetClientConnection.swift; sourceTree = "<group>"; };
 		D49D756027FFE52800142E26 /* AutoNetDataTransferProtocol.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AutoNetDataTransferProtocol.swift; sourceTree = "<group>"; };
+		D4D049B72AC0BC820084EAFD /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main_iPhone.storyboard; sourceTree = "<group>"; };
+		D4D1592A28027EE000AFFA1E /* RPLidarPolarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RPLidarPolarView.swift; sourceTree = "<group>"; };
 		EA6B40C620B0912400422C7C /* DaydreamView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DaydreamView.h; sourceTree = "<group>"; };
 		EA6B40C720B0912400422C7C /* DaydreamView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DaydreamView.m; sourceTree = "<group>"; };
 		EA6B40C920B0938B00422C7C /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
@@ -168,11 +172,13 @@
 			isa = PBXGroup;
 			children = (
 				EA8727E020A924C00015A7DF /* Main.storyboard */,
+				D4D049B62AC0BC820084EAFD /* Main_iPhone.storyboard */,
 				EA8727E520A924C20015A7DF /* LaunchScreen.storyboard */,
 				EA8727F120A924F40015A7DF /* AurioTouch */,
 				D4E673B12800AADF009FE43C /* AutoNetClient */,
 				EA8727DA20A924C00015A7DF /* AppDelegate.h */,
 				EA8727DB20A924C00015A7DF /* AppDelegate.m */,
+				D4D1592A28027EE000AFFA1E /* RPLidarPolarView.swift */,
 				EA8727DD20A924C00015A7DF /* ConsciousViewController.h */,
 				EA8727DE20A924C00015A7DF /* ConsciousViewController.mm */,
 				EA6B40C620B0912400422C7C /* DaydreamView.h */,
@@ -331,6 +337,7 @@
 				EA8727E720A924C20015A7DF /* LaunchScreen.storyboard in Resources */,
 				EA87281F20A925C60015A7DF /* fft_on.png in Resources */,
 				EA8727E420A924C20015A7DF /* Assets.xcassets in Resources */,
+				D4D049B82AC0BC820084EAFD /* Main_iPhone.storyboard in Resources */,
 				EA8727E220A924C00015A7DF /* Main.storyboard in Resources */,
 				EA87281B20A925C60015A7DF /* fft_off.png in Resources */,
 				EA87281A20A925C60015A7DF /* mute_off.png in Resources */,
@@ -352,6 +359,7 @@
 				D49D755F27FFE52000142E26 /* AutoNetClientConnection.swift in Sources */,
 				EA8727EA20A924C20015A7DF /* main.m in Sources */,
 				EA6B40C820B0912500422C7C /* DaydreamView.m in Sources */,
+				D4D1592B28027EE000AFFA1E /* RPLidarPolarView.swift in Sources */,
 				EA8727DC20A924C00015A7DF /* AppDelegate.m in Sources */,
 				D49D756127FFE52800142E26 /* AutoNetDataTransferProtocol.swift in Sources */,
 				EA8727FE20A925570015A7DF /* AudioController.mm in Sources */,
@@ -365,6 +373,14 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXVariantGroup section */
+		D4D049B62AC0BC820084EAFD /* Main_iPhone.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D4D049B72AC0BC820084EAFD /* Base */,
+			);
+			name = Main_iPhone.storyboard;
+			sourceTree = "<group>";
+		};
 		EA8727E020A924C00015A7DF /* Main.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
