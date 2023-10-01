@@ -7,6 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D44862D42AC11CBB00645DF4 /* Consciousness_WatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D44862D32AC11CBB00645DF4 /* Consciousness_WatchApp.swift */; };
+		D44862D82AC11CBD00645DF4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D44862D72AC11CBD00645DF4 /* Assets.xcassets */; };
+		D44862DB2AC11CBD00645DF4 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D44862DA2AC11CBD00645DF4 /* Preview Assets.xcassets */; };
+		D44862DE2AC11CBD00645DF4 /* Consciousness-Watch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D44862D12AC11CBB00645DF4 /* Consciousness-Watch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D44862E32AC1218D00645DF4 /* AutoNetClientConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49D755D27FFE52000142E26 /* AutoNetClientConnection.swift */; };
+		D44862E42AC1218F00645DF4 /* AutoNetDataTransferProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49D756027FFE52800142E26 /* AutoNetDataTransferProtocol.swift */; };
+		D44862E52AC1219200645DF4 /* AutoNetClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49D755C27FFE52000142E26 /* AutoNetClient.swift */; };
+		D44862E82AC1289E00645DF4 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D44862D52AC11CBB00645DF4 /* ContentView.swift */; };
+		D44862E92AC128A800645DF4 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D44862D52AC11CBB00645DF4 /* ContentView.swift */; };
 		D49D755E27FFE52000142E26 /* AutoNetClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49D755C27FFE52000142E26 /* AutoNetClient.swift */; };
 		D49D755F27FFE52000142E26 /* AutoNetClientConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49D755D27FFE52000142E26 /* AutoNetClientConnection.swift */; };
 		D49D756127FFE52800142E26 /* AutoNetDataTransferProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49D756027FFE52800142E26 /* AutoNetDataTransferProtocol.swift */; };
@@ -52,7 +61,36 @@
 		EA8729A520AB7CF20015A7DF /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA8729A420AB7CF20015A7DF /* CoreMedia.framework */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		D44862DC2AC11CBD00645DF4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = EA8727CF20A924C00015A7DF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D44862D02AC11CBB00645DF4;
+			remoteInfo = "Consciousness-Watch Watch App";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		D44862DF2AC11CBD00645DF4 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				D44862DE2AC11CBD00645DF4 /* Consciousness-Watch Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		D44862D12AC11CBB00645DF4 /* Consciousness-Watch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Consciousness-Watch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D44862D32AC11CBB00645DF4 /* Consciousness_WatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Consciousness_WatchApp.swift; sourceTree = "<group>"; };
+		D44862D52AC11CBB00645DF4 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		D44862D72AC11CBD00645DF4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D44862DA2AC11CBD00645DF4 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		D49D755C27FFE52000142E26 /* AutoNetClient.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AutoNetClient.swift; sourceTree = "<group>"; };
 		D49D755D27FFE52000142E26 /* AutoNetClientConnection.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AutoNetClientConnection.swift; sourceTree = "<group>"; };
 		D49D756027FFE52800142E26 /* AutoNetDataTransferProtocol.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AutoNetDataTransferProtocol.swift; sourceTree = "<group>"; };
@@ -116,6 +154,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		D44862CE2AC11CBB00645DF4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		EA8727D420A924C00015A7DF /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -141,6 +186,25 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		D44862D22AC11CBB00645DF4 /* Consciousness-Watch Watch App */ = {
+			isa = PBXGroup;
+			children = (
+				D44862D32AC11CBB00645DF4 /* Consciousness_WatchApp.swift */,
+				D44862D52AC11CBB00645DF4 /* ContentView.swift */,
+				D44862D72AC11CBD00645DF4 /* Assets.xcassets */,
+				D44862D92AC11CBD00645DF4 /* Preview Content */,
+			);
+			path = "Consciousness-Watch Watch App";
+			sourceTree = "<group>";
+		};
+		D44862D92AC11CBD00645DF4 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				D44862DA2AC11CBD00645DF4 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
 		D4E673B12800AADF009FE43C /* AutoNetClient */ = {
 			isa = PBXGroup;
 			children = (
@@ -155,6 +219,7 @@
 			isa = PBXGroup;
 			children = (
 				EA8727D920A924C00015A7DF /* Consciousness */,
+				D44862D22AC11CBB00645DF4 /* Consciousness-Watch Watch App */,
 				EA8727D820A924C00015A7DF /* Products */,
 				EA87282020A926BD0015A7DF /* Frameworks */,
 			);
@@ -164,6 +229,7 @@
 			isa = PBXGroup;
 			children = (
 				EA8727D720A924C00015A7DF /* Consciousness.app */,
+				D44862D12AC11CBB00645DF4 /* Consciousness-Watch Watch App.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -274,6 +340,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		D44862D02AC11CBB00645DF4 /* Consciousness-Watch Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D44862E22AC11CBD00645DF4 /* Build configuration list for PBXNativeTarget "Consciousness-Watch Watch App" */;
+			buildPhases = (
+				D44862CD2AC11CBB00645DF4 /* Sources */,
+				D44862CE2AC11CBB00645DF4 /* Frameworks */,
+				D44862CF2AC11CBB00645DF4 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Consciousness-Watch Watch App";
+			productName = "Consciousness-Watch Watch App";
+			productReference = D44862D12AC11CBB00645DF4 /* Consciousness-Watch Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
 		EA8727D620A924C00015A7DF /* Consciousness */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = EA8727ED20A924C20015A7DF /* Build configuration list for PBXNativeTarget "Consciousness" */;
@@ -281,10 +364,12 @@
 				EA8727D320A924C00015A7DF /* Sources */,
 				EA8727D420A924C00015A7DF /* Frameworks */,
 				EA8727D520A924C00015A7DF /* Resources */,
+				D44862DF2AC11CBD00645DF4 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				D44862DD2AC11CBD00645DF4 /* PBXTargetDependency */,
 			);
 			name = Consciousness;
 			productName = Consciousness;
@@ -297,9 +382,13 @@
 		EA8727CF20A924C00015A7DF /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
+				LastSwiftUpdateCheck = 1500;
 				LastUpgradeCheck = 0940;
 				ORGANIZATIONNAME = OrbitusRobotics;
 				TargetAttributes = {
+					D44862D02AC11CBB00645DF4 = {
+						CreatedOnToolsVersion = 15.0;
+					};
 					EA8727D620A924C00015A7DF = {
 						CreatedOnToolsVersion = 9.4;
 						LastSwiftMigration = 0940;
@@ -320,11 +409,21 @@
 			projectRoot = "";
 			targets = (
 				EA8727D620A924C00015A7DF /* Consciousness */,
+				D44862D02AC11CBB00645DF4 /* Consciousness-Watch Watch App */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		D44862CF2AC11CBB00645DF4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D44862DB2AC11CBD00645DF4 /* Preview Assets.xcassets in Resources */,
+				D44862D82AC11CBD00645DF4 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		EA8727D520A924C00015A7DF /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -347,6 +446,18 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		D44862CD2AC11CBB00645DF4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D44862E32AC1218D00645DF4 /* AutoNetClientConnection.swift in Sources */,
+				D44862E52AC1219200645DF4 /* AutoNetClient.swift in Sources */,
+				D44862E82AC1289E00645DF4 /* ContentView.swift in Sources */,
+				D44862D42AC11CBB00645DF4 /* Consciousness_WatchApp.swift in Sources */,
+				D44862E42AC1218F00645DF4 /* AutoNetDataTransferProtocol.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		EA8727D320A924C00015A7DF /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -358,6 +469,7 @@
 				D49D755E27FFE52000142E26 /* AutoNetClient.swift in Sources */,
 				D49D755F27FFE52000142E26 /* AutoNetClientConnection.swift in Sources */,
 				EA8727EA20A924C20015A7DF /* main.m in Sources */,
+				D44862E92AC128A800645DF4 /* ContentView.swift in Sources */,
 				EA6B40C820B0912500422C7C /* DaydreamView.m in Sources */,
 				D4D1592B28027EE000AFFA1E /* RPLidarPolarView.swift in Sources */,
 				EA8727DC20A924C00015A7DF /* AppDelegate.m in Sources */,
@@ -371,6 +483,14 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D44862DD2AC11CBD00645DF4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D44862D02AC11CBB00645DF4 /* Consciousness-Watch Watch App */;
+			targetProxy = D44862DC2AC11CBD00645DF4 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		D4D049B62AC0BC820084EAFD /* Main_iPhone.storyboard */ = {
@@ -400,6 +520,84 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		D44862E02AC11CBD00645DF4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Consciousness-Watch Watch App/Preview Content\"";
+				DEVELOPMENT_TEAM = 975CAGD5EW;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Consciousness-Watch";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.orbitusrobotics.Consciousness;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.orbitusrobotics.Consciousness.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 9.0;
+			};
+			name = Debug;
+		};
+		D44862E12AC11CBD00645DF4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Consciousness-Watch Watch App/Preview Content\"";
+				DEVELOPMENT_TEAM = 975CAGD5EW;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Consciousness-Watch";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.orbitusrobotics.Consciousness;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.orbitusrobotics.Consciousness.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 9.0;
+			};
+			name = Release;
+		};
 		EA8727EB20A924C20015A7DF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -513,11 +711,13 @@
 		EA8727EE20A924C20015A7DF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 975CAGD5EW;
 				INFOPLIST_FILE = Consciousness/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -534,11 +734,13 @@
 		EA8727EF20A924C20015A7DF /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 975CAGD5EW;
 				INFOPLIST_FILE = Consciousness/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -554,6 +756,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		D44862E22AC11CBD00645DF4 /* Build configuration list for PBXNativeTarget "Consciousness-Watch Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D44862E02AC11CBD00645DF4 /* Debug */,
+				D44862E12AC11CBD00645DF4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		EA8727D220A924C00015A7DF /* Build configuration list for PBXProject "Consciousness" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

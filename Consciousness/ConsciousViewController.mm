@@ -40,6 +40,9 @@
 @property (readwrite, assign) bool speed_ForwardReverse_toggle;
 @property (readwrite, assign) bool speed_PlayPause_toggle;
 
+@property (readwrite, assign) IBOutlet NSLayoutConstraint *controlTrailingSpace;
+@property (readwrite, assign) IBOutlet NSLayoutConstraint *languageLeadingSpace;
+
 @property (readwrite, assign) float speed;
 @property (readwrite, retain) IBOutlet UISlider *speedSlider;
 
@@ -293,8 +296,22 @@
     //[glview startAnimation];
     //---
     
+    
+//    notificationCenter.addObserver(self,
+//                selector: #selector(systemVolumeDidChange),
+//                name: "AVSystemController_SystemVolumeDidChangeNotification",
+//                object: nil
+//            )
+//    
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(systemVolumeDidChange:) name:@"AVSystemController_SystemVolumeDidChangeNotification" object:nil];
+    
     self.safeToStartRecording = true;
     [self speechAudioInit];
+}
+
+- (void) systemVolumeDidChange:(NSNotification *)notification {
+    NSLog(@"systemVolumeDidChange = %@", notification.userInfo);
 }
 
 - (void)captureOutput:(AVCaptureOutput *)captureOutput didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {
@@ -410,27 +427,29 @@
 }
 
 - (IBAction)recordButtonTouchDown:(id)sender {
-    if (self.safeToStartRecording) {
+//    if (self.safeToStartRecording) {
         self.safeToStartRecording = false;
         [self setupSpeechRecognition];
         NSLog(@"Recording has started...");
-    } else {
-        NSError *outError;
-        
-        [self.audioEngine prepare];
-        [self.audioEngine startAndReturnError:&outError];
-        if (outError)
-            NSLog(@"Error %@", outError);
-    }
+//    } else {
+//        NSError *outError;
+//        
+//        [self.audioEngine prepare];
+//        [self.audioEngine startAndReturnError:&outError];
+//        if (outError)
+//            NSLog(@"Error %@", outError);
+//    }
 }
 
 - (IBAction)recordButtonTouchUp:(id)sender {
-    if (self.audioEngine.isRunning)
-    {
-        [self.audioEngine pause];
-        //self.currentUserVerbalQueryString = @"";
-        //self.textView.text = @"";
-    }
+    [self.task cancel];
+//    [self endRecognizer];
+//    if (self.audioEngine.isRunning)
+//    {
+//        [self.audioEngine pause];
+//        //self.currentUserVerbalQueryString = @"";
+//        //self.textView.text = @"";
+//    }
 }
 
 - (void)didReceiveMemoryWarning {
@@ -439,21 +458,21 @@
 }
 
 - (void) openCommandSheetMenu {
-    self.commandSheetStackView.frame = CGRectMake(self.view.frame.size.width-self.commandSheetStackView.frame.size.width, 30, self.commandSheetStackView.frame.size.width, self.commandSheetStackView.frame.size.height);
+    self.controlTrailingSpace.constant = -self.commandSheetStackView.frame.size.width;
 }
 
 - (void) closeCommandSheetMenu {
-    self.commandSheetStackView.frame = CGRectMake(self.view.frame.size.width, 30, self.commandSheetStackView.frame.size.width, self.commandSheetStackView.frame.size.height);
+    self.controlTrailingSpace.constant = 0;
 }
 
 - (void) openMenu
 {
-    self.languageTableView.frame = CGRectMake(0, 30, self.languageTableView.frame.size.width,  self.languageTableView.frame.size.height);
+    self.languageLeadingSpace.constant = -self.languageTableView.frame.size.width;
 }
 
 - (void) closeMenu
 {
-    self.languageTableView.frame = CGRectMake(-self.languageTableView.frame.size.width, 30, self.languageTableView.frame.size.width,  self.languageTableView.frame.size.height);
+    self.languageLeadingSpace.constant = 0;
 }
 
 - (IBAction) controllerAction:(id)sender {
@@ -462,9 +481,9 @@
     if (!self.isAnimatingControllerMenu)
     {
         self.isAnimatingControllerMenu = true;
-        if (self.commandSheetStackView.frame.origin.x >= self.view.frame.size.width)
+        if (self.controlTrailingSpace.constant == 0)
         {
-            [UIView animateWithDuration:0.33 animations:^(){
+            [UIView animateWithDuration:0.0 animations:^(){
                 [self openCommandSheetMenu];
             } completion:^(bool Finished){
                 self.isAnimatingControllerMenu = false;
@@ -472,7 +491,7 @@
         }
         else
         {
-            [UIView animateWithDuration:0.33 animations:^(){
+            [UIView animateWithDuration:0.0 animations:^(){
                 [self closeCommandSheetMenu];
             } completion:^(bool Finished){
                 self.isAnimatingControllerMenu = false;
@@ -489,9 +508,9 @@
     if (!self.isAnimating)
     {
         self.isAnimating = true;
-        if (self.languageTableView.frame.origin.x < 0)
+        if (self.languageLeadingSpace.constant == 0)
         {
-            [UIView animateWithDuration:0.33 animations:^(){
+            [UIView animateWithDuration:0.0 animations:^(){
                 [self openMenu];
             } completion:^(bool Finished){
                 self.isAnimating = false;
@@ -499,7 +518,7 @@
         }
         else
         {
-            [UIView animateWithDuration:0.33 animations:^(){
+            [UIView animateWithDuration:0.0 animations:^(){
                 [self closeMenu];
             } completion:^(bool Finished){
                 self.isAnimating = false;
@@ -589,7 +608,7 @@
                     //[self.recordButton setTitle:@"Stop Recording" forState:UIControlStateNormal];
                     
                     //This method will control auto listening at all times voer and over for continuous speech recognition
-                    [self startRecognizer];
+                    //[self startRecognizer];
                 }
                 
             }];
