@@ -144,7 +144,7 @@
     //---
     //Motion Manager
     self.motionManager = [CMMotionManager new];
-    self.motionManager.deviceMotionUpdateInterval = (1.0/10.0);
+    self.motionManager.deviceMotionUpdateInterval = (1.0/5.0);
     
     
     
