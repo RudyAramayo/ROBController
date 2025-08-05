@@ -99,18 +99,28 @@ import Network
                 
                 print("client: name - \(name)\ntype -\(serviceType)\ndomain - \(domain)\ninterface - \(String(describing: interface))")
                 
+                let udp_options = NWProtocolUDP.Options()
+                udp_options.preferNoChecksum = true
+                
                 let tcp_options = NWProtocolTCP.Options()
                 tcp_options.enableKeepalive = true
                 tcp_options.keepaliveIdle = 2
                 
-                let parameters = NWParameters.init(tls: nil, tcp: tcp_options)
-                parameters.allowLocalEndpointReuse = true
+                //udp
+                let udp_parameters = NWParameters.init(dtls: nil, udp: udp_options)
+                udp_parameters.allowLocalEndpointReuse = true
+                udp_parameters.allowFastOpen = true
+                
+                //tcp
+                let tcp_parameters = NWParameters.init(tls: nil, tcp: tcp_options)
+                tcp_parameters.allowLocalEndpointReuse = true
 
                 let frameOptions = NWProtocolFramer.Options(definition: AutoNetDataTransferProtocol.definition)
-                parameters.defaultProtocolStack.applicationProtocols.insert(frameOptions, at: 0)
+                tcp_parameters.defaultProtocolStack.applicationProtocols.insert(frameOptions, at: 0)
+                udp_parameters.defaultProtocolStack.applicationProtocols.insert(frameOptions, at: 0)
                 
                 //let nwConnection = NWConnection(host: self.host, port: self.port, using: parameters)
-                let nwConnection = NWConnection(to: browseResult.endpoint, using: parameters)
+                let nwConnection = NWConnection(to: browseResult.endpoint, using: udp_parameters)
                 
                 self.connection = AutoNetClientConnection(nwConnection: nwConnection)
                 self.start()

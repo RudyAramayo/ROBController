@@ -10,7 +10,7 @@
 		D44862D42AC11CBB00645DF4 /* Consciousness_WatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D44862D32AC11CBB00645DF4 /* Consciousness_WatchApp.swift */; };
 		D44862D82AC11CBD00645DF4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D44862D72AC11CBD00645DF4 /* Assets.xcassets */; };
 		D44862DB2AC11CBD00645DF4 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D44862DA2AC11CBD00645DF4 /* Preview Assets.xcassets */; };
-		D44862DE2AC11CBD00645DF4 /* Consciousness-Watch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D44862D12AC11CBB00645DF4 /* Consciousness-Watch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D44862DE2AC11CBD00645DF4 /* ROBController-Watch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D44862D12AC11CBB00645DF4 /* ROBController-Watch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		D44862E32AC1218D00645DF4 /* AutoNetClientConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49D755D27FFE52000142E26 /* AutoNetClientConnection.swift */; };
 		D44862E42AC1218F00645DF4 /* AutoNetDataTransferProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49D756027FFE52800142E26 /* AutoNetDataTransferProtocol.swift */; };
 		D44862E52AC1219200645DF4 /* AutoNetClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49D755C27FFE52000142E26 /* AutoNetClient.swift */; };
@@ -21,6 +21,7 @@
 		D49D756127FFE52800142E26 /* AutoNetDataTransferProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49D756027FFE52800142E26 /* AutoNetDataTransferProtocol.swift */; };
 		D4D049B82AC0BC820084EAFD /* Main_iPhone.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D4D049B62AC0BC820084EAFD /* Main_iPhone.storyboard */; };
 		D4D1592B28027EE000AFFA1E /* RPLidarPolarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D1592A28027EE000AFFA1E /* RPLidarPolarView.swift */; };
+		D4DD62E52E371CB200844D2B /* RPLidarMapController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4DD62E42E371CB200844D2B /* RPLidarMapController.swift */; };
 		EA6B40C820B0912500422C7C /* DaydreamView.m in Sources */ = {isa = PBXBuildFile; fileRef = EA6B40C720B0912400422C7C /* DaydreamView.m */; };
 		EA6B40CA20B0938B00422C7C /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA6B40C920B0938B00422C7C /* CoreMotion.framework */; };
 		EA8727DC20A924C00015A7DF /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = EA8727DB20A924C00015A7DF /* AppDelegate.m */; };
@@ -78,15 +79,25 @@
 			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
 			dstSubfolderSpec = 16;
 			files = (
-				D44862DE2AC11CBD00645DF4 /* Consciousness-Watch Watch App.app in Embed Watch Content */,
+				D44862DE2AC11CBD00645DF4 /* ROBController-Watch Watch App.app in Embed Watch Content */,
 			);
 			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D4C0438B2E3B3BAB00EEF4F1 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		D44862D12AC11CBB00645DF4 /* Consciousness-Watch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Consciousness-Watch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D44862D12AC11CBB00645DF4 /* ROBController-Watch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ROBController-Watch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D44862D32AC11CBB00645DF4 /* Consciousness_WatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Consciousness_WatchApp.swift; sourceTree = "<group>"; };
 		D44862D52AC11CBB00645DF4 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		D44862D72AC11CBD00645DF4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -96,10 +107,11 @@
 		D49D756027FFE52800142E26 /* AutoNetDataTransferProtocol.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AutoNetDataTransferProtocol.swift; sourceTree = "<group>"; };
 		D4D049B72AC0BC820084EAFD /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main_iPhone.storyboard; sourceTree = "<group>"; };
 		D4D1592A28027EE000AFFA1E /* RPLidarPolarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RPLidarPolarView.swift; sourceTree = "<group>"; };
+		D4DD62E42E371CB200844D2B /* RPLidarMapController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RPLidarMapController.swift; sourceTree = "<group>"; };
 		EA6B40C620B0912400422C7C /* DaydreamView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DaydreamView.h; sourceTree = "<group>"; };
 		EA6B40C720B0912400422C7C /* DaydreamView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DaydreamView.m; sourceTree = "<group>"; };
 		EA6B40C920B0938B00422C7C /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
-		EA8727D720A924C00015A7DF /* Consciousness.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Consciousness.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EA8727D720A924C00015A7DF /* ROBController.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ROBController.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EA8727DA20A924C00015A7DF /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		EA8727DB20A924C00015A7DF /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		EA8727DD20A924C00015A7DF /* ConsciousViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ConsciousViewController.h; sourceTree = "<group>"; };
@@ -228,8 +240,8 @@
 		EA8727D820A924C00015A7DF /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				EA8727D720A924C00015A7DF /* Consciousness.app */,
-				D44862D12AC11CBB00645DF4 /* Consciousness-Watch Watch App.app */,
+				EA8727D720A924C00015A7DF /* ROBController.app */,
+				D44862D12AC11CBB00645DF4 /* ROBController-Watch Watch App.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -247,6 +259,7 @@
 				D4D1592A28027EE000AFFA1E /* RPLidarPolarView.swift */,
 				EA8727DD20A924C00015A7DF /* ConsciousViewController.h */,
 				EA8727DE20A924C00015A7DF /* ConsciousViewController.mm */,
+				D4DD62E42E371CB200844D2B /* RPLidarMapController.swift */,
 				EA6B40C620B0912400422C7C /* DaydreamView.h */,
 				EA6B40C720B0912400422C7C /* DaydreamView.m */,
 				EA8727E320A924C20015A7DF /* Assets.xcassets */,
@@ -340,9 +353,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		D44862D02AC11CBB00645DF4 /* Consciousness-Watch Watch App */ = {
+		D44862D02AC11CBB00645DF4 /* ROBController-Watch Watch App */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = D44862E22AC11CBD00645DF4 /* Build configuration list for PBXNativeTarget "Consciousness-Watch Watch App" */;
+			buildConfigurationList = D44862E22AC11CBD00645DF4 /* Build configuration list for PBXNativeTarget "ROBController-Watch Watch App" */;
 			buildPhases = (
 				D44862CD2AC11CBB00645DF4 /* Sources */,
 				D44862CE2AC11CBB00645DF4 /* Frameworks */,
@@ -352,28 +365,29 @@
 			);
 			dependencies = (
 			);
-			name = "Consciousness-Watch Watch App";
+			name = "ROBController-Watch Watch App";
 			productName = "Consciousness-Watch Watch App";
-			productReference = D44862D12AC11CBB00645DF4 /* Consciousness-Watch Watch App.app */;
+			productReference = D44862D12AC11CBB00645DF4 /* ROBController-Watch Watch App.app */;
 			productType = "com.apple.product-type.application";
 		};
-		EA8727D620A924C00015A7DF /* Consciousness */ = {
+		EA8727D620A924C00015A7DF /* ROBController */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = EA8727ED20A924C20015A7DF /* Build configuration list for PBXNativeTarget "Consciousness" */;
+			buildConfigurationList = EA8727ED20A924C20015A7DF /* Build configuration list for PBXNativeTarget "ROBController" */;
 			buildPhases = (
 				EA8727D320A924C00015A7DF /* Sources */,
 				EA8727D420A924C00015A7DF /* Frameworks */,
 				EA8727D520A924C00015A7DF /* Resources */,
 				D44862DF2AC11CBD00645DF4 /* Embed Watch Content */,
+				D4C0438B2E3B3BAB00EEF4F1 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				D44862DD2AC11CBD00645DF4 /* PBXTargetDependency */,
 			);
-			name = Consciousness;
+			name = ROBController;
 			productName = Consciousness;
-			productReference = EA8727D720A924C00015A7DF /* Consciousness.app */;
+			productReference = EA8727D720A924C00015A7DF /* ROBController.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -395,7 +409,7 @@
 					};
 				};
 			};
-			buildConfigurationList = EA8727D220A924C00015A7DF /* Build configuration list for PBXProject "Consciousness" */;
+			buildConfigurationList = EA8727D220A924C00015A7DF /* Build configuration list for PBXProject "ROBController" */;
 			compatibilityVersion = "Xcode 9.3";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -408,8 +422,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				EA8727D620A924C00015A7DF /* Consciousness */,
-				D44862D02AC11CBB00645DF4 /* Consciousness-Watch Watch App */,
+				EA8727D620A924C00015A7DF /* ROBController */,
+				D44862D02AC11CBB00645DF4 /* ROBController-Watch Watch App */,
 			);
 		};
 /* End PBXProject section */
@@ -463,6 +477,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				EA87280A20A9256E0015A7DF /* CAXException.cpp in Sources */,
+				D4DD62E52E371CB200844D2B /* RPLidarMapController.swift in Sources */,
 				EA8727FF20A925570015A7DF /* FFTHelper.cpp in Sources */,
 				EA8727DF20A924C00015A7DF /* ConsciousViewController.mm in Sources */,
 				EA8727FD20A925570015A7DF /* BufferManager.cpp in Sources */,
@@ -487,7 +502,7 @@
 /* Begin PBXTargetDependency section */
 		D44862DD2AC11CBD00645DF4 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = D44862D02AC11CBB00645DF4 /* Consciousness-Watch Watch App */;
+			target = D44862D02AC11CBB00645DF4 /* ROBController-Watch Watch App */;
 			targetProxy = D44862DC2AC11CBD00645DF4 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -538,7 +553,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Consciousness-Watch";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.orbitusrobotics.Consciousness;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.orbitusrobotics.robcontroller;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -547,7 +562,7 @@
 				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.orbitusrobotics.Consciousness.watchkitapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.orbitusrobotics.robcontroller.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
@@ -578,7 +593,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Consciousness-Watch";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.orbitusrobotics.Consciousness;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.orbitusrobotics.robcontroller;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -586,7 +601,7 @@
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 1.0;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.orbitusrobotics.Consciousness.watchkitapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.orbitusrobotics.robcontroller.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
@@ -714,16 +729,23 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 975CAGD5EW;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Consciousness",
+				);
 				INFOPLIST_FILE = Consciousness/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = R.O.B.;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.orbitusrobotics.Consciousness;
+				PRODUCT_BUNDLE_IDENTIFIER = com.orbitusrobotics.robcontroller;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "Consciousness/Consciousness-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -737,16 +759,23 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 975CAGD5EW;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Consciousness",
+				);
 				INFOPLIST_FILE = Consciousness/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = R.O.B.;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.orbitusrobotics.Consciousness;
+				PRODUCT_BUNDLE_IDENTIFIER = com.orbitusrobotics.robcontroller;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "Consciousness/Consciousness-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -756,7 +785,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		D44862E22AC11CBD00645DF4 /* Build configuration list for PBXNativeTarget "Consciousness-Watch Watch App" */ = {
+		D44862E22AC11CBD00645DF4 /* Build configuration list for PBXNativeTarget "ROBController-Watch Watch App" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D44862E02AC11CBD00645DF4 /* Debug */,
@@ -765,7 +794,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		EA8727D220A924C00015A7DF /* Build configuration list for PBXProject "Consciousness" */ = {
+		EA8727D220A924C00015A7DF /* Build configuration list for PBXProject "ROBController" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				EA8727EB20A924C20015A7DF /* Debug */,
@@ -774,7 +803,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		EA8727ED20A924C20015A7DF /* Build configuration list for PBXNativeTarget "Consciousness" */ = {
+		EA8727ED20A924C20015A7DF /* Build configuration list for PBXNativeTarget "ROBController" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				EA8727EE20A924C20015A7DF /* Debug */,

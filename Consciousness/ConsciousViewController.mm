@@ -15,7 +15,7 @@
 #import <CoreML/CoreML.h>
 #import <Vision/Vision.h>
 #import <CoreMotion/CoreMotion.h>
-#import "Consciousness-Swift.h"
+#import "ROBController-Swift.h"
 
 @interface ConsciousViewController () <AVCaptureAudioDataOutputSampleBufferDelegate, AVSpeechSynthesizerDelegate, SFSpeechRecognizerDelegate, SFSpeechRecognitionTaskDelegate, UITableViewDelegate, UITableViewDataSource, AutoNetClientDataDelegate, CLLocationManagerDelegate>
 {
@@ -73,6 +73,9 @@
 @property (readwrite, retain) CLLocationManager *locationManager;
 @property (readwrite, retain) CMMotionManager *motionManager;
 @property (readwrite, retain) CMAttitude *referenceAttitude;
+@property (readwrite, assign) float yaw;
+@property (readwrite, assign) float pitch;
+@property (readwrite, assign) float roll;
 
 @property (readwrite, retain) NSMutableArray *localeArray;
 @property (readwrite, assign) int selectedLocaleIndex;
@@ -80,6 +83,10 @@
 @property(nonatomic, strong) AutoNetClient *autoNetClient;
 @property (readwrite, retain) IBOutlet UIView *chatConnectionStatus;
 //@property(readwrite, strong) ResNetController *resnet;
+
+@property (readwrite, assign) IBOutlet UIImageView *rpLidarMapView;
+@property (readwrite, retain) RPLidarMapController *rpLidarMapController;
+
 @end
 
 @implementation ConsciousViewController
@@ -124,6 +131,7 @@
     self.lact_GRAVITY_toggle = false;
     self.lact_FRONT_isDown = false;
 
+    self.rpLidarMapController = [[RPLidarMapController alloc] initWithRpLidarMapView:self.rpLidarMapView];
     //---
     //Location Manager code - versy simple
     self.locationManager = [CLLocationManager new];
@@ -246,6 +254,11 @@
         
         if (self.referenceAttitude)
             [data.attitude multiplyByInverseOfAttitude:self.referenceAttitude];
+        //NSLog(@"data.attitude.yaw = %f, data.attitude.pitch = %f, data.attitude.roll = %f", data.attitude.yaw, data.attitude.pitch, data.attitude.roll);
+        
+        self.yaw = data.attitude.yaw;
+        self.pitch = data.attitude.pitch;
+        self.roll = data.attitude.roll;
         
         NSString *dataString = [NSString stringWithFormat:
                                 @"%0.2f,%0.2f,%0.2f,\n%0.2f,%0.2f,%0.2f,\n%0.2f,%0.2f,%0.2f,\nyaw=%f\npitch=%f\nroll=%f\ntouchPadL - %f,%f\ntouchPadR - %f,%f\n(Lat,Long):%f:%f\ntredBrakeLock=%i\nflipper=%i,%i,%i,%i\nlact=%i,%i,%i\nspeed=%f,play=%i,forward-reverse=%i\nTEXT=%@",
@@ -846,7 +859,7 @@
 
 - (void) didReceiveData:(NSData *)data {
     NSError *error = nil;
-    NSSet *classSet = [NSSet setWithObjects:[NSDictionary class], [NSString class], nil];
+    NSSet *classSet = [NSSet setWithObjects:[NSDictionary class], [NSString class], [NSData class], nil];
     NSDictionary *messageDictionary = (NSDictionary*) [NSKeyedUnarchiver unarchivedObjectOfClasses:classSet fromData:data error:&error];
     NSString *msg = [messageDictionary valueForKey:@"message"];
     NSString *sender = [messageDictionary valueForKey:@"sender"];
@@ -884,13 +897,33 @@
             //yaw:pitch:roll
             NSArray *pose = [lidarScan[0] componentsSeparatedByString:@":"];
             [lidarScan removeObjectAtIndex:0];
-            weakSelf.rotationLabel.text = [NSString stringWithFormat:@"yaw:%@ pitch:%@ roll:%@", pose[0], pose[1], pose[2]];
+            //weakSelf.rotationLabel.text = [NSString stringWithFormat:@"yaw:%@ pitch:%@ roll:%@", pose[0], pose[1], pose[2]];
+            weakSelf.rotationLabel.text = [NSString stringWithFormat:@"yaw:%f pitch:%f roll:%f", self.yaw, self.pitch, self.roll];
+
             //laserPoint-distance:angle
             
             weakSelf.rpLidarPolarView.laserPoints = lidarScan;
+            //TODO: we need to inject the map data into this polarView correctly and test the current location calculations...
+            //weakSelf.rpLidarPolarView.map = RPMap()
+            //weakSelf.rpLidarPolarView.currentLocation = RPLocation()
+            
             [weakSelf.rpLidarPolarView setNeedsDisplay];
         });
-        
+    }
+    //NSLog(@"sender = %@", sender);
+    if ([sender isEqualToString:@"rpLidar.map"]) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            NSData *map_data = [messageDictionary valueForKey:@"map.data"];
+            NSString *map_width_string = [messageDictionary valueForKey:@"map.width"];
+            NSString *map_height_string = [messageDictionary valueForKey:@"map.height"];
+            
+            int map_width = map_width_string.intValue;
+            int map_height = map_height_string.intValue;
+            //NSLog(@"updating map with %lu length bytes", static_cast<unsigned long>(map_data.length));
+            [self.rpLidarMapController updateMapWithData:map_data
+                                                   width:map_width
+                                                  height:map_height];
+        });
     }
 }
 
