@@ -836,6 +836,15 @@
 
 #pragma mark -
 
+- (void) chooseOutputLanguageAction:(NSString *)outputLanguage {
+    NSDictionary *messageDict = @{@"message": [NSString stringWithFormat:@"SetOutputLanguage:%@", outputLanguage],
+                                  @"sender":[[[UIDevice currentDevice] identifierForVendor] UUIDString]};
+    NSError *error = nil;
+    [self.autoNetClient sendWithData:[NSKeyedArchiver archivedDataWithRootObject:messageDict requiringSecureCoding:false error:&error]];
+    if (error != nil) {
+        NSLog(@"Error %@", [error localizedDescription]);
+    }
+}
 
 - (IBAction) RequestToBeMasterControllerAction:(id) sender {
     NSDictionary *messageDict = @{@"message": @"RequestToBeMasterController",
@@ -964,6 +973,9 @@
 {
     self.selectedLocaleIndex = (int)indexPath.row;
     [tableView reloadData];
+    
+    NSString *locale = [self.localeArray[self.selectedLocaleIndex] valueForKey:@"locale_id"];
+    [self chooseOutputLanguageAction:locale];
 }
 
 
