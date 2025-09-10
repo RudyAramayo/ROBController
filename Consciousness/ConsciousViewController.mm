@@ -836,6 +836,17 @@
 
 #pragma mark -
 
+- (IBAction) shutUpDroid {
+    NSDictionary *messageDict = @{@"message": [NSString stringWithFormat:@"ShutUp"],
+                                  @"sender":[[[UIDevice currentDevice] identifierForVendor] UUIDString]};
+    NSError *error = nil;
+    [self.autoNetClient sendWithData:[NSKeyedArchiver archivedDataWithRootObject:messageDict requiringSecureCoding:false error:&error]];
+    if (error != nil) {
+        NSLog(@"Error %@", [error localizedDescription]);
+    }
+
+}
+
 - (void) chooseOutputLanguageAction:(NSString *)outputLanguage {
     NSDictionary *messageDict = @{@"message": [NSString stringWithFormat:@"SetOutputLanguage:%@", outputLanguage],
                                   @"sender":[[[UIDevice currentDevice] identifierForVendor] UUIDString]};
