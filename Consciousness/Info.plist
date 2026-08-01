@@ -22,26 +22,29 @@
 	<true/>
 	<key>NSBonjourServices</key>
 	<array>
+		<string>_robctl._udp</string>
+		<!-- Compatibility discovery only. Connections are refused unless
+		     ROB_CONTROL_ALLOW_LEGACY_AUTONET=1 is explicitly enabled. -->
 		<string>_roboNet._tcp</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>Spy on you</string>
+	<string>Camera access lets the operator provide a live video feed for robot control.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Network usage is required for macOS/iOS communication</string>
+	<string>ROBController discovers and securely communicates with its paired Cerebro robot on the local network.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Keep spying on your position</string>
+	<string>Location access lets the controller report device position as robot telemetry.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Spy on your position</string>
+	<string>Location access lets the controller report device position as robot telemetry.</string>
 	<key>NSLocationUsageDescription</key>
-	<string>Steal your passwords</string>
+	<string>Location access lets the controller report device position as robot telemetry.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Kill your cat</string>
+	<string>Location access lets the controller report device position as robot telemetry.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Spy on your audio</string>
+	<string>Microphone access lets the operator send spoken robot commands.</string>
 	<key>NSMotionUsageDescription</key>
-	<string></string>
+	<string>Motion access lets the controller send device attitude telemetry to the robot.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Listen to your movement commands</string>
+	<string>Speech recognition converts the operator's spoken robot commands to text.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile~ipad</key>

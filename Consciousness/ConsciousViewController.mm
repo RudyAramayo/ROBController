@@ -15,6 +15,7 @@
 #import <CoreML/CoreML.h>
 #import <Vision/Vision.h>
 #import <CoreMotion/CoreMotion.h>
+#import <WatchConnectivity/WatchConnectivity.h>
 #import "ROBController-Swift.h"
 
 @interface ConsciousViewController () <AVCaptureAudioDataOutputSampleBufferDelegate, AVSpeechSynthesizerDelegate, SFSpeechRecognizerDelegate, SFSpeechRecognitionTaskDelegate, UITableViewDelegate, UITableViewDataSource, AutoNetClientDataDelegate, CLLocationManagerDelegate>
@@ -81,8 +82,62 @@
 @property (readwrite, assign) int selectedLocaleIndex;
 
 @property(nonatomic, strong) AutoNetClient *autoNetClient;
+@property(nonatomic, strong) ROBWatchRelay *watchRelay;
 @property (readwrite, retain) IBOutlet UIView *chatConnectionStatus;
+@property (weak, nonatomic) IBOutlet UIButton *pairControllerButton;
+@property (weak, nonatomic) IBOutlet UIButton *autonomyModeButton;
+@property (weak, nonatomic) IBOutlet UILabel *autonomyStatusLabel;
+@property (nonatomic, strong) NSString *autonomySessionID;
+@property (nonatomic, assign) uint64_t autonomySequence;
+@property (nonatomic, assign) ROBAutonomySessionState autonomySessionState;
+@property (nonatomic, strong) ROBAutonomySessionMessage *pendingAutonomyCommand;
+@property (nonatomic, copy) NSString *autonomyStatusDetail;
+@property (nonatomic, assign) BOOL autonomyStartRequested;
 //@property(readwrite, strong) ResNetController *resnet;
+
+// Gemini may propose a bounded, high-level action, but this controller is only
+// an operator approval/status console. These controls never drive hardware.
+@property (weak, nonatomic) IBOutlet UIView *robotActionPanel;
+@property (weak, nonatomic) IBOutlet UILabel *robotActionSafetyLabel;
+@property (weak, nonatomic) IBOutlet UILabel *robotActionTitleLabel;
+@property (weak, nonatomic) IBOutlet UILabel *robotActionDetailLabel;
+@property (weak, nonatomic) IBOutlet UIButton *robotActionsEnabledButton;
+@property (weak, nonatomic) IBOutlet UIButton *robotActionApproveButton;
+@property (weak, nonatomic) IBOutlet UIButton *robotActionRejectButton;
+@property (weak, nonatomic) IBOutlet UIButton *robotActionCompleteButton;
+@property (weak, nonatomic) IBOutlet UIButton *robotActionFailedButton;
+@property (weak, nonatomic) IBOutlet UIButton *robotActionCancelButton;
+@property (nonatomic, strong) ROBRobotActionMessage *currentRobotActionRequest;
+@property (nonatomic, assign) ROBRobotActionState currentRobotActionState;
+@property (nonatomic, strong) NSMutableDictionary<NSString *, ROBRobotActionMessage *> *robotActionLastStatusByLedgerKey;
+@property (nonatomic, strong) NSMutableArray<NSString *> *robotActionStatusLedgerKeyOrder;
+@property (nonatomic, strong) NSTimer *robotActionExpiryTimer;
+@property (nonatomic, strong) NSTimer *robotActionHelloTimer;
+@property (nonatomic, assign) BOOL didAnnounceRobotActionConsole;
+@property (nonatomic, assign) BOOL robotActionsEnabled;
+
+- (IBAction)toggleRobotActionsEnabled:(id)sender;
+- (IBAction)approveRobotAction:(id)sender;
+- (IBAction)rejectRobotAction:(id)sender;
+- (IBAction)completeRobotAction:(id)sender;
+- (IBAction)failRobotAction:(id)sender;
+- (IBAction)cancelRobotAction:(id)sender;
+- (IBAction)pairCerebroController:(id)sender;
+- (IBAction)toggleAutonomySession:(id)sender;
+- (BOOL)sendRobotActionMessage:(ROBRobotActionMessage *)message;
+- (void)handleRobotActionMessage:(ROBRobotActionMessage *)message;
+- (BOOL)sendAutonomyMessage:(ROBAutonomySessionMessage *)message;
+- (void)handleAutonomyMessage:(ROBAutonomySessionMessage *)message;
+- (void)retransmitPendingAutonomyCommand;
+- (void)refreshAutonomyConsole;
+- (void)refreshRobotActionConsole;
+- (void)announceRobotActionConsole;
+- (void)setRobotActionsEnabled:(BOOL)enabled reason:(NSString *)reason;
+- (ROBRobotActionMessage *)sendRobotActionStatusForRequest:(ROBRobotActionMessage *)request
+                                                     state:(ROBRobotActionState)state
+                                                    detail:(NSString *)detail
+                                                    result:(NSDictionary *)result;
+- (void)presentControllerNoticeWithTitle:(NSString *)title message:(NSString *)message;
 
 @property (readwrite, assign) IBOutlet UIImageView *rpLidarMapView;
 @property (readwrite, retain) RPLidarMapController *rpLidarMapController;
@@ -130,6 +185,24 @@
     self.lact_BACK_isDown = false;
     self.lact_GRAVITY_toggle = false;
     self.lact_FRONT_isDown = false;
+
+    // Physical-action requests require an explicit opt-in after every launch.
+    // Resigning active resets the opt-in and cancels any open request.
+    self.robotActionsEnabled = NO;
+    self.currentRobotActionState = ROBRobotActionStateNone;
+    self.robotActionLastStatusByLedgerKey = [NSMutableDictionary dictionary];
+    self.robotActionStatusLedgerKeyOrder = [NSMutableArray array];
+    self.didAnnounceRobotActionConsole = NO;
+    self.autonomySequence = 0;
+    self.autonomySessionState = ROBAutonomySessionStateInactive;
+    self.autonomyStatusDetail = @"Inactive — one operator tap starts a bounded social-roam session.";
+    self.autonomyStartRequested = NO;
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(applicationWillResignActive:)
+                                                 name:UIApplicationWillResignActiveNotification
+                                               object:nil];
+    [self refreshRobotActionConsole];
+    [self refreshAutonomyConsole];
 
     self.rpLidarMapController = [[RPLidarMapController alloc] initWithRpLidarMapView:self.rpLidarMapView];
     //---
@@ -285,9 +358,17 @@
     }];
     //MCBus Setup
     if (self.autoNetClient == nil)
-        self.autoNetClient = [[AutoNetClient alloc] initWithService:@"_roboNet._tcp"];
+        self.autoNetClient = [[AutoNetClient alloc] initWithService:AutoNetClient.defaultService];
     self.autoNetClient.dataDelegate = self;
     [self.autoNetClient start];
+    self.watchRelay = [[ROBWatchRelay alloc] initWithAutoNetClient:self.autoNetClient];
+    __weak ConsciousViewController *weakSelfForHello = self;
+    self.robotActionHelloTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 repeats:YES block:^(NSTimer *timer) {
+        [weakSelfForHello announceRobotActionConsole];
+        [weakSelfForHello retransmitPendingAutonomyCommand];
+        [weakSelfForHello refreshAutonomyConsole];
+    }];
+    [self refreshAutonomyConsole];
     /* // !!!! Before WE ENABLE AUTOREJOIN MAKE SURE THE INITIAL BASE NETWORK NEEDS IT !!!!
     [NSTimer scheduledTimerWithTimeInterval:10 repeats:true block:^(NSTimer *timer){
         printf(".");
@@ -867,8 +948,822 @@
     }
 }
 
+#pragma mark - Pairing and controller-authorized autonomy
+
+- (void)presentControllerNoticeWithTitle:(NSString *)title message:(NSString *)message
+{
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:title
+                                                                   message:message
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (IBAction)pairCerebroController:(id)sender
+{
+    if (self.autonomySessionID.length > 0 || self.autonomyStartRequested ||
+        self.autonomySessionState == ROBAutonomySessionStateActive ||
+        self.autonomySessionState == ROBAutonomySessionStateStopping) {
+        [self presentControllerNoticeWithTitle:@"Stop autonomy first"
+                                       message:@"Pairing cannot be replaced while an autonomy session may still be active."];
+        return;
+    }
+
+    UIAlertController *alert = [UIAlertController
+        alertControllerWithTitle:@"Pair with Cerebro"
+                         message:@"Paste the complete ROBCTL2 pairing code shown by Cerebro. The code is stored in this device's Keychain and is never logged."
+                  preferredStyle:UIAlertControllerStyleAlert];
+    [alert addTextFieldWithConfigurationHandler:^(UITextField *textField) {
+        textField.placeholder = @"ROBCTL2:…";
+        textField.secureTextEntry = YES;
+        textField.autocorrectionType = UITextAutocorrectionTypeNo;
+        textField.autocapitalizationType = UITextAutocapitalizationTypeNone;
+        textField.clearButtonMode = UITextFieldViewModeWhileEditing;
+    }];
+    [alert addAction:[UIAlertAction actionWithTitle:@"Cancel"
+                                             style:UIAlertActionStyleCancel
+                                           handler:nil]];
+
+    __weak ConsciousViewController *weakSelf = self;
+    __weak UITextField *weakPairingCodeField = alert.textFields.firstObject;
+    [alert addAction:[UIAlertAction actionWithTitle:@"Pair"
+                                             style:UIAlertActionStyleDefault
+                                           handler:^(UIAlertAction *action) {
+        ConsciousViewController *strongSelf = weakSelf;
+        if (strongSelf == nil) {
+            return;
+        }
+        NSString *pairingCode = [weakPairingCodeField.text
+            stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+        if (pairingCode.length == 0) {
+            [strongSelf presentControllerNoticeWithTitle:@"Pairing code required"
+                                                  message:@"Copy the complete ROBCTL2 code from Cerebro and try again."];
+            return;
+        }
+
+        NSError *pairingError = nil;
+        BOOL installed = [strongSelf.autoNetClient installPairingCode:pairingCode
+                                                                 error:&pairingError];
+        [strongSelf refreshAutonomyConsole];
+        if (!installed) {
+            [strongSelf presentControllerNoticeWithTitle:@"Pairing failed"
+                                                  message:(pairingError.localizedDescription ?: @"The pairing code was rejected.")];
+            return;
+        }
+
+        strongSelf.didAnnounceRobotActionConsole = NO;
+        [strongSelf presentControllerNoticeWithTitle:@"Pairing stored"
+                                              message:@"ROBController will connect only to the paired Cerebro v2 service."];
+    }]];
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (BOOL)sendAutonomyMessage:(ROBAutonomySessionMessage *)message
+{
+    if (message == nil || self.autoNetClient == nil || !self.autoNetClient.isConnected) {
+        return NO;
+    }
+    NSData *archive = [ROBAutonomySessionWireCodec archiveMessage:message
+                                                     legacySender:[self robotActionSenderID]];
+    if (archive == nil) {
+        NSLog(@"Unable to encode autonomy session message %@", message.messageID);
+        return NO;
+    }
+    [self.autoNetClient sendWithData:archive];
+    return YES;
+}
+
+- (void)startSocialRoamSession
+{
+    if (!self.autoNetClient.isPairingConfigured) {
+        [self presentControllerNoticeWithTitle:@"Pair Cerebro first"
+                                       message:@"Install the ROBCTL2 pairing code before authorizing autonomy."];
+        return;
+    }
+    if (!self.autoNetClient.isConnected) {
+        [self presentControllerNoticeWithTitle:@"Cerebro is not connected"
+                                       message:@"Reconnect to the authenticated v2 service, then start autonomy."];
+        return;
+    }
+
+    self.autonomySessionID = [NSUUID UUID].UUIDString;
+    self.autonomySequence = 1;
+    self.autonomyStartRequested = YES;
+    self.autonomySessionState = ROBAutonomySessionStateInactive;
+    self.autonomyStatusDetail = @"Start sent — waiting for Cerebro to acknowledge the bounded social-roam session.";
+    self.pendingAutonomyCommand = [ROBAutonomySessionMessage
+        startWithSessionID:self.autonomySessionID
+                  sequence:self.autonomySequence
+                  senderID:[self robotActionSenderID]
+               recipientID:nil
+                   profile:ROBAutonomyProfileSocialRoam
+          zoneRadiusMeters:5.0
+         maximumSpeedScale:0.20
+                 behaviors:@[@"talk", @"look_at_person", @"idle_gesture", @"roam", @"stop_motion"]
+                 expiresAt:[NSDate dateWithTimeIntervalSinceNow:8.0 * 60.0 * 60.0]];
+    BOOL sent = [self sendAutonomyMessage:self.pendingAutonomyCommand];
+    if (!sent) {
+        self.autonomyStatusDetail = @"Start queued — waiting for the authenticated Cerebro link.";
+    }
+    [self refreshAutonomyConsole];
+}
+
+- (void)stopAutonomySession
+{
+    if (self.autonomySessionID.length == 0) {
+        return;
+    }
+
+    self.autonomySequence += 1;
+    self.autonomyStartRequested = NO;
+    self.autonomySessionState = ROBAutonomySessionStateStopping;
+    self.pendingAutonomyCommand = [ROBAutonomySessionMessage
+        stopWithSessionID:self.autonomySessionID
+                 sequence:self.autonomySequence
+                 senderID:[self robotActionSenderID]
+              recipientID:nil
+                   reason:@"Operator pressed Stop Autonomy in ROBController"];
+    BOOL sent = [self sendAutonomyMessage:self.pendingAutonomyCommand];
+    self.autonomyStatusDetail = sent
+        ? @"STOP sent — waiting for Cerebro to confirm that the session is inactive."
+        : @"STOP queued — it will be sent as soon as the authenticated Cerebro link reconnects.";
+    [self refreshAutonomyConsole];
+}
+
+- (IBAction)toggleAutonomySession:(id)sender
+{
+    if (self.autonomyStartRequested || self.autonomySessionState == ROBAutonomySessionStateActive) {
+        [self stopAutonomySession];
+        return;
+    }
+    if (self.autonomySessionState == ROBAutonomySessionStateStopping) {
+        // A second tap is harmless and immediately retries the same immutable
+        // stop command; it never creates a second autonomy session.
+        [self sendAutonomyMessage:self.pendingAutonomyCommand];
+        return;
+    }
+    [self startSocialRoamSession];
+}
+
+- (void)retransmitPendingAutonomyCommand
+{
+    if (self.pendingAutonomyCommand == nil) {
+        return;
+    }
+    [self sendAutonomyMessage:self.pendingAutonomyCommand];
+}
+
+- (BOOL)autonomyMessageIsAddressedToThisController:(ROBAutonomySessionMessage *)message
+{
+    return message.recipientID.length == 0 ||
+        [message.recipientID isEqualToString:[self robotActionSenderID]];
+}
+
+- (void)handleAutonomyMessage:(ROBAutonomySessionMessage *)message
+{
+    NSAssert([NSThread isMainThread], @"Autonomy state must be updated on the main thread");
+    if (message.kind != ROBAutonomySessionMessageKindStatus ||
+        ![self autonomyMessageIsAddressedToThisController:message]) {
+        return;
+    }
+
+    // An addressed active status after an app restart restores the session ID
+    // and sequence so the operator can still issue a valid immediate Stop.
+    if (self.autonomySessionID.length > 0 &&
+        ![self.autonomySessionID isEqualToString:message.sessionID]) {
+        return;
+    }
+    if (self.pendingAutonomyCommand != nil &&
+        [self.pendingAutonomyCommand.sessionID isEqualToString:message.sessionID] &&
+        message.sequence < self.pendingAutonomyCommand.sequence) {
+        return;
+    }
+
+    self.autonomySessionID = message.sessionID;
+    self.autonomySequence = MAX(self.autonomySequence, message.sequence);
+    self.autonomySessionState = message.state;
+    self.autonomyStatusDetail = message.detail.length > 0
+        ? message.detail
+        : @"Cerebro published an autonomy status update.";
+
+    if (self.pendingAutonomyCommand != nil &&
+        [self.pendingAutonomyCommand.sessionID isEqualToString:message.sessionID] &&
+        message.sequence >= self.pendingAutonomyCommand.sequence) {
+        self.pendingAutonomyCommand = nil;
+    }
+
+    switch (message.state) {
+        case ROBAutonomySessionStateActive:
+            self.autonomyStartRequested = YES;
+            break;
+        case ROBAutonomySessionStateStopping:
+            self.autonomyStartRequested = NO;
+            break;
+        case ROBAutonomySessionStateInactive:
+        case ROBAutonomySessionStateUnavailable:
+            self.autonomyStartRequested = NO;
+            self.pendingAutonomyCommand = nil;
+            self.autonomySessionID = nil;
+            break;
+    }
+    [self refreshAutonomyConsole];
+}
+
+- (void)refreshAutonomyConsole
+{
+    BOOL pairingConfigured = self.autoNetClient.isPairingConfigured;
+    BOOL connected = self.autoNetClient.isConnected;
+    BOOL sessionMayBeActive = self.autonomySessionID.length > 0 || self.autonomyStartRequested ||
+        self.autonomySessionState == ROBAutonomySessionStateActive ||
+        self.autonomySessionState == ROBAutonomySessionStateStopping;
+
+    NSString *pairTitle = pairingConfigured
+        ? (connected ? @"Pair: Connected" : @"Pair: Stored")
+        : @"Pair Cerebro…";
+    [self.pairControllerButton setTitle:pairTitle forState:UIControlStateNormal];
+    self.pairControllerButton.enabled = !sessionMayBeActive;
+
+    NSString *stateName = @"INACTIVE";
+    NSString *buttonTitle = @"Start Social Roam";
+    if (self.autonomySessionState == ROBAutonomySessionStateStopping) {
+        stateName = @"STOPPING";
+        buttonTitle = @"Retry Stop";
+    } else if (self.autonomySessionState == ROBAutonomySessionStateActive) {
+        stateName = @"ACTIVE";
+        buttonTitle = @"Stop Autonomy";
+    } else if (self.autonomyStartRequested) {
+        stateName = @"START REQUESTED";
+        buttonTitle = @"Stop Autonomy";
+    } else if (self.autonomySessionState == ROBAutonomySessionStateUnavailable) {
+        stateName = @"UNAVAILABLE";
+    }
+    [self.autonomyModeButton setTitle:buttonTitle forState:UIControlStateNormal];
+    self.autonomyModeButton.enabled = sessionMayBeActive || (pairingConfigured && connected);
+
+    NSString *transportState = connected
+        ? @"authenticated link connected"
+        : (pairingConfigured ? @"pairing stored; link disconnected" : @"not paired");
+    self.autonomyStatusLabel.text = [NSString stringWithFormat:@"Autonomy %@ — %@ (%@)",
+                                     stateName,
+                                     self.autonomyStatusDetail ?: @"No status received.",
+                                     transportState];
+}
+
+#pragma mark - Gemini robot-action approval console
+
+- (NSString *)robotActionSenderID
+{
+    NSString *identifier = [[[UIDevice currentDevice] identifierForVendor] UUIDString];
+    return identifier.length > 0 ? identifier : @"ROBController";
+}
+
+- (BOOL)sendRobotActionMessage:(ROBRobotActionMessage *)message
+{
+    if (message == nil || self.autoNetClient == nil || !self.autoNetClient.isConnected) {
+        return NO;
+    }
+    NSData *archive = [ROBRobotActionWireCodec archiveMessage:message
+                                                legacySender:[self robotActionSenderID]];
+    if (archive == nil) {
+        NSLog(@"Unable to encode robot-action message %@", message.messageID);
+        return NO;
+    }
+    [self.autoNetClient sendWithData:archive];
+    return YES;
+}
+
+- (void)announceRobotActionConsole
+{
+    ROBRobotActionMessage *hello = [ROBRobotActionMessage
+                                    controllerHelloWithSenderID:[self robotActionSenderID]
+                                    acceptsActions:self.robotActionsEnabled
+                                    capabilities:@[
+                                        @"look_at",
+                                        @"play_gesture",
+                                        @"request_pick",
+                                        @"navigate_relative",
+                                        @"stop_motion"
+                                    ]];
+    self.didAnnounceRobotActionConsole = [self sendRobotActionMessage:hello];
+}
+
+- (NSString *)robotActionLedgerKeyForPeerID:(NSString *)peerID callID:(NSString *)callID
+{
+    if (peerID.length == 0 || callID.length == 0) {
+        return nil;
+    }
+    // A length prefix makes the compound key unambiguous without restricting
+    // otherwise valid protocol identifiers.
+    return [NSString stringWithFormat:@"%lu:%@%@",
+            (unsigned long)peerID.length, peerID, callID];
+}
+
+- (NSString *)boundedRobotActionDetail:(NSString *)detail
+{
+    static NSUInteger const kMaximumDetailLength = 2048;
+    if (detail.length <= kMaximumDetailLength) {
+        return detail;
+    }
+
+    NSRange prefixRange = [detail rangeOfComposedCharacterSequencesForRange:
+        NSMakeRange(0, kMaximumDetailLength)];
+    if (NSMaxRange(prefixRange) > kMaximumDetailLength) {
+        NSRange crossingSequence = [detail rangeOfComposedCharacterSequenceAtIndex:
+            kMaximumDetailLength - 1];
+        prefixRange.length = crossingSequence.location;
+    }
+    return [detail substringWithRange:prefixRange];
+}
+
+- (void)rememberRobotActionStatus:(ROBRobotActionMessage *)status
+{
+    NSString *ledgerKey = [self robotActionLedgerKeyForPeerID:status.recipientID
+                                                      callID:status.callID];
+    if (ledgerKey == nil) {
+        return;
+    }
+
+    if (self.robotActionLastStatusByLedgerKey[ledgerKey] == nil) {
+        // Keep a bounded FIFO replay/tombstone ledger. Preserve the currently
+        // displayed call while evicting an older inactive entry when possible.
+        while (self.robotActionStatusLedgerKeyOrder.count >= 128) {
+            NSString *currentLedgerKey = [self
+                robotActionLedgerKeyForPeerID:self.currentRobotActionRequest.senderID
+                                       callID:self.currentRobotActionRequest.callID];
+            NSUInteger evictionIndex = [self.robotActionStatusLedgerKeyOrder indexOfObjectPassingTest:
+                ^BOOL(NSString *candidate, NSUInteger index, BOOL *stop) {
+                    return ![candidate isEqualToString:currentLedgerKey];
+                }];
+            if (evictionIndex == NSNotFound) {
+                break;
+            }
+            NSString *evictedLedgerKey = self.robotActionStatusLedgerKeyOrder[evictionIndex];
+            [self.robotActionStatusLedgerKeyOrder removeObjectAtIndex:evictionIndex];
+            [self.robotActionLastStatusByLedgerKey removeObjectForKey:evictedLedgerKey];
+        }
+        [self.robotActionStatusLedgerKeyOrder addObject:ledgerKey];
+    }
+    self.robotActionLastStatusByLedgerKey[ledgerKey] = status;
+}
+
+- (ROBRobotActionMessage *)sendRobotActionStatusForRequest:(ROBRobotActionMessage *)request
+                                                     state:(ROBRobotActionState)state
+                                                    detail:(NSString *)detail
+                                                    result:(NSDictionary *)result
+{
+    if (request.callID.length == 0) {
+        return nil;
+    }
+    NSString *boundedDetail = [self boundedRobotActionDetail:detail];
+    ROBRobotActionMessage *status = [ROBRobotActionMessage
+                                     actionStatusWithCallID:request.callID
+                                     state:state
+                                     detail:boundedDetail
+                                     result:(result != nil ? result : @{})
+                                     senderID:[self robotActionSenderID]
+                                     recipientID:request.senderID];
+    [self rememberRobotActionStatus:status];
+    [self sendRobotActionMessage:status];
+    return status;
+}
+
+- (NSString *)displayNameForRobotActionState:(ROBRobotActionState)state
+{
+    switch (state) {
+        case ROBRobotActionStatePending: return @"PENDING";
+        case ROBRobotActionStateAccepted: return @"APPROVED — MANUAL ACTION";
+        case ROBRobotActionStateExecuting: return @"MANUAL ACTION IN PROGRESS";
+        case ROBRobotActionStateCompleted: return @"COMPLETED";
+        case ROBRobotActionStateRejected: return @"REJECTED";
+        case ROBRobotActionStateCancelled: return @"CANCELLED";
+        case ROBRobotActionStateFailed: return @"FAILED";
+        case ROBRobotActionStateExpired: return @"EXPIRED";
+        case ROBRobotActionStateNone: return @"IDLE";
+    }
+}
+
+- (NSString *)summaryForRobotActionArguments:(NSDictionary *)arguments
+{
+    if (arguments.count == 0) {
+        return @"{}";
+    }
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:arguments
+                                                       options:NSJSONWritingSortedKeys
+                                                         error:nil];
+    NSString *summary = jsonData == nil ? arguments.description :
+        [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+    if (summary.length > 240) {
+        summary = [[summary substringToIndex:240] stringByAppendingString:@"…"];
+    }
+    return summary;
+}
+
+- (void)refreshRobotActionConsole
+{
+    self.robotActionSafetyLabel.text = @"PER-ACTION BUTTONS DO NOT ACTUATE — AUTONOMY IS A SEPARATE BOUNDED SESSION";
+    [self.robotActionsEnabledButton setTitle:(self.robotActionsEnabled ? @"AI Actions: On" : @"AI Actions: Off")
+                                    forState:UIControlStateNormal];
+
+    BOOL pending = self.robotActionsEnabled && self.currentRobotActionState == ROBRobotActionStatePending;
+    BOOL accepted = self.robotActionsEnabled &&
+        (self.currentRobotActionState == ROBRobotActionStateAccepted ||
+         self.currentRobotActionState == ROBRobotActionStateExecuting);
+    self.robotActionApproveButton.enabled = pending;
+    self.robotActionRejectButton.enabled = pending;
+    self.robotActionCompleteButton.enabled = accepted;
+    self.robotActionFailedButton.enabled = accepted;
+    self.robotActionCancelButton.enabled = pending || accepted;
+
+    ROBRobotActionMessage *request = self.currentRobotActionRequest;
+    if (request == nil) {
+        self.robotActionTitleLabel.text = self.robotActionsEnabled ?
+            @"AI Action: Waiting for request" : @"AI Action: Disabled (operator opt-in required)";
+        self.robotActionDetailLabel.text = @"No pending action. Legacy manual controls and the tread heartbeat are unchanged.";
+        return;
+    }
+
+    NSString *action = request.action.length > 0 ? request.action : @"unknown action";
+    self.robotActionTitleLabel.text = [NSString stringWithFormat:@"AI Action: %@ — %@",
+                                       action,
+                                       [self displayNameForRobotActionState:self.currentRobotActionState]];
+    NSString *ledgerKey = [self robotActionLedgerKeyForPeerID:request.senderID
+                                                       callID:request.callID];
+    ROBRobotActionMessage *latestStatus = self.robotActionLastStatusByLedgerKey[ledgerKey];
+    NSString *detail = latestStatus.detail.length > 0 ? latestStatus.detail : @"Awaiting operator decision.";
+    self.robotActionDetailLabel.text = [NSString stringWithFormat:@"%@  Arguments: %@",
+                                        detail,
+                                        [self summaryForRobotActionArguments:request.arguments]];
+}
+
+- (void)scheduleExpiryForRobotActionRequest:(ROBRobotActionMessage *)request
+{
+    [self.robotActionExpiryTimer invalidate];
+    self.robotActionExpiryTimer = nil;
+
+    NSTimeInterval nowMilliseconds = [[NSDate date] timeIntervalSince1970] * 1000.0;
+    NSTimeInterval delay = ((NSTimeInterval)request.expiresAtMilliseconds - nowMilliseconds) / 1000.0;
+    if (delay <= 0.0) {
+        self.currentRobotActionState = ROBRobotActionStateExpired;
+        [self sendRobotActionStatusForRequest:request
+                                       state:ROBRobotActionStateExpired
+                                      detail:@"Approval deadline expired before operator approval."
+                                      result:@{}];
+        [self refreshRobotActionConsole];
+        return;
+    }
+
+    __weak ConsciousViewController *weakSelf = self;
+    self.robotActionExpiryTimer = [NSTimer scheduledTimerWithTimeInterval:delay repeats:NO block:^(NSTimer *timer) {
+        ConsciousViewController *strongSelf = weakSelf;
+        if (strongSelf == nil ||
+            strongSelf.currentRobotActionState != ROBRobotActionStatePending ||
+            ![strongSelf.currentRobotActionRequest.callID isEqualToString:request.callID] ||
+            ![strongSelf.currentRobotActionRequest.senderID isEqualToString:request.senderID]) {
+            return;
+        }
+        strongSelf.currentRobotActionState = ROBRobotActionStateExpired;
+        [strongSelf sendRobotActionStatusForRequest:request
+                                              state:ROBRobotActionStateExpired
+                                             detail:@"Approval deadline expired before operator approval."
+                                             result:@{}];
+        [strongSelf refreshRobotActionConsole];
+    }];
+}
+
+- (void)setRobotActionsEnabled:(BOOL)enabled reason:(NSString *)reason
+{
+    self.robotActionsEnabled = enabled;
+    if (!enabled && self.currentRobotActionState == ROBRobotActionStatePending) {
+        [self.robotActionExpiryTimer invalidate];
+        self.robotActionExpiryTimer = nil;
+        self.currentRobotActionState = ROBRobotActionStateCancelled;
+        [self sendRobotActionStatusForRequest:self.currentRobotActionRequest
+                                       state:ROBRobotActionStateCancelled
+                                      detail:(reason.length > 0 ? reason : @"Operator disabled AI actions.")
+                                      result:@{}];
+    } else if (!enabled &&
+               (self.currentRobotActionState == ROBRobotActionStateAccepted ||
+                self.currentRobotActionState == ROBRobotActionStateExecuting)) {
+        // Losing the foreground console or disabling proposals is not proof
+        // that a manually initiated physical action stopped. Keep the call
+        // nonterminal until the operator confirms Complete, Failed, or Cancel.
+        NSString *context = reason.length > 0 ? reason : @"Operator disabled AI actions.";
+        NSString *detail = [NSString stringWithFormat:
+            @"%@ Physical stop/hold is unconfirmed; re-enable the console and report a terminal outcome.",
+            context];
+        [self sendRobotActionStatusForRequest:self.currentRobotActionRequest
+                                        state:self.currentRobotActionState
+                                       detail:detail
+                                       result:@{}];
+    }
+    self.didAnnounceRobotActionConsole = NO;
+    [self refreshRobotActionConsole];
+    if (self.autoNetClient.isConnected) {
+        [self announceRobotActionConsole];
+    }
+}
+
+- (IBAction)toggleRobotActionsEnabled:(id)sender
+{
+    if (self.robotActionsEnabled) {
+        [self setRobotActionsEnabled:NO
+                              reason:@"Operator disabled AI actions"];
+    } else {
+        [self setRobotActionsEnabled:YES reason:nil];
+    }
+}
+
+- (void)applicationWillResignActive:(NSNotification *)notification
+{
+    // The older per-action approval console is foreground-only. A separately
+    // authorized autonomy session continues on Cerebro until Stop, expiry,
+    // manual takeover, or a local robot fault; backgrounding this UI does not
+    // silently revoke or orphan that server-side session.
+    [self setRobotActionsEnabled:NO
+                          reason:@"Controller resigned active; AI actions reset to Off"];
+}
+
+- (BOOL)robotActionMessageIsAddressedToThisController:(ROBRobotActionMessage *)message
+{
+    return message.recipientID.length == 0 ||
+        [message.recipientID isEqualToString:[self robotActionSenderID]];
+}
+
+- (void)expirePendingRobotActionRequest:(ROBRobotActionMessage *)request
+{
+    if ([self.currentRobotActionRequest.callID isEqualToString:request.callID] &&
+        [self.currentRobotActionRequest.senderID isEqualToString:request.senderID] &&
+        self.currentRobotActionState == ROBRobotActionStatePending) {
+        self.currentRobotActionState = ROBRobotActionStateExpired;
+        [self.robotActionExpiryTimer invalidate];
+        self.robotActionExpiryTimer = nil;
+    }
+    [self sendRobotActionStatusForRequest:request
+                                   state:ROBRobotActionStateExpired
+                                  detail:@"Approval deadline expired before operator approval."
+                                  result:@{}];
+    [self refreshRobotActionConsole];
+}
+
+- (void)handleRobotActionRequest:(ROBRobotActionMessage *)request
+{
+    NSString *callID = request.callID;
+    if (callID.length == 0) {
+        return;
+    }
+
+    // Cerebro retransmits immutable requests on UDP loss. Re-send the latest
+    // status rather than repeating any state transition or operator action.
+    NSString *ledgerKey = [self robotActionLedgerKeyForPeerID:request.senderID callID:callID];
+    ROBRobotActionMessage *lastStatus = self.robotActionLastStatusByLedgerKey[ledgerKey];
+    if (lastStatus != nil) {
+        if (lastStatus.state == ROBRobotActionStatePending && request.isExpired) {
+            [self expirePendingRobotActionRequest:request];
+        } else {
+            [self sendRobotActionMessage:lastStatus];
+        }
+        return;
+    }
+
+    // Preserve exact replay even if the active call was the one protected from
+    // FIFO eviction (a defensive path for future ledger changes).
+    if ([self.currentRobotActionRequest.callID isEqualToString:callID] &&
+        [self.currentRobotActionRequest.senderID isEqualToString:request.senderID]) {
+        if (self.currentRobotActionState == ROBRobotActionStatePending && request.isExpired) {
+            [self expirePendingRobotActionRequest:request];
+        } else {
+            [self sendRobotActionStatusForRequest:self.currentRobotActionRequest
+                                           state:self.currentRobotActionState
+                                          detail:@"Replayed current operator-console state."
+                                          result:@{}];
+        }
+        return;
+    }
+
+    BOOL hasOpenRequest = self.currentRobotActionState == ROBRobotActionStatePending ||
+        self.currentRobotActionState == ROBRobotActionStateAccepted ||
+        self.currentRobotActionState == ROBRobotActionStateExecuting;
+    if (hasOpenRequest) {
+        [self sendRobotActionStatusForRequest:request
+                                       state:ROBRobotActionStateRejected
+                                      detail:@"Another action is already awaiting operator disposition."
+                                      result:@{}];
+        return;
+    }
+
+    self.currentRobotActionRequest = request;
+    if (request.isExpired) {
+        self.currentRobotActionState = ROBRobotActionStateExpired;
+        [self sendRobotActionStatusForRequest:request
+                                       state:ROBRobotActionStateExpired
+                                      detail:@"Approval deadline expired before the request reached the operator."
+                                      result:@{}];
+        [self refreshRobotActionConsole];
+        return;
+    }
+
+    if (!self.robotActionsEnabled) {
+        self.currentRobotActionState = ROBRobotActionStateRejected;
+        [self sendRobotActionStatusForRequest:request
+                                       state:ROBRobotActionStateRejected
+                                      detail:@"AI actions are Off; explicit operator opt-in is required. No hardware was actuated."
+                                      result:@{}];
+        [self refreshRobotActionConsole];
+        return;
+    }
+
+    self.currentRobotActionState = ROBRobotActionStatePending;
+    [self sendRobotActionStatusForRequest:request
+                                   state:ROBRobotActionStatePending
+                                  detail:@"Awaiting operator approval. This console does not actuate hardware."
+                                  result:@{}];
+    [self scheduleExpiryForRobotActionRequest:request];
+    [self refreshRobotActionConsole];
+}
+
+- (void)handleRobotActionCancellation:(ROBRobotActionMessage *)cancellation
+{
+    NSString *callID = cancellation.callID;
+    if (callID.length == 0) {
+        return;
+    }
+
+    NSString *ledgerKey = [self robotActionLedgerKeyForPeerID:cancellation.senderID callID:callID];
+    ROBRobotActionMessage *lastStatus = self.robotActionLastStatusByLedgerKey[ledgerKey];
+    if (lastStatus != nil && lastStatus.isTerminal) {
+        [self sendRobotActionMessage:lastStatus];
+        return;
+    }
+
+    BOOL isCurrent = [self.currentRobotActionRequest.callID isEqualToString:callID] &&
+        [self.currentRobotActionRequest.senderID isEqualToString:cancellation.senderID];
+    if (isCurrent) {
+        [self.robotActionExpiryTimer invalidate];
+        self.robotActionExpiryTimer = nil;
+        NSString *context = cancellation.detail.length > 0 ? cancellation.detail : @"Cancelled by Cerebro.";
+        if (self.currentRobotActionState == ROBRobotActionStateAccepted ||
+            self.currentRobotActionState == ROBRobotActionStateExecuting) {
+            // A network cancellation requests a stop; it does not observe one.
+            // Keep Cerebro's blocking action slot occupied until the operator
+            // confirms the physical outcome with a terminal button.
+            NSString *detail = [NSString stringWithFormat:
+                @"%@ Cancellation requested; physical stop/hold is unconfirmed. Operator confirmation is required.",
+                context];
+            [self sendRobotActionStatusForRequest:self.currentRobotActionRequest
+                                            state:self.currentRobotActionState
+                                          detail:detail
+                                          result:@{}];
+            [self refreshRobotActionConsole];
+            return;
+        }
+
+        self.currentRobotActionState = ROBRobotActionStateCancelled;
+        [self sendRobotActionStatusForRequest:self.currentRobotActionRequest
+                                       state:ROBRobotActionStateCancelled
+                                      detail:context
+                                      result:@{}];
+        [self refreshRobotActionConsole];
+        return;
+    }
+
+    // UDP may reorder cancellation ahead of its request. Store a terminal
+    // tombstone so a later request from this peer with this call ID is never
+    // shown or acted on.
+    NSString *detail = cancellation.detail.length > 0 ? cancellation.detail : @"Cancelled before request delivery.";
+    [self sendRobotActionStatusForRequest:cancellation
+                                   state:ROBRobotActionStateCancelled
+                                  detail:detail
+                                  result:@{}];
+}
+
+- (void)handleRobotActionMessage:(ROBRobotActionMessage *)message
+{
+    NSAssert([NSThread isMainThread], @"Robot-action state must be updated on the main thread");
+    if (![self robotActionMessageIsAddressedToThisController:message]) {
+        return;
+    }
+
+    switch (message.kind) {
+        case ROBRobotActionMessageKindActionRequest:
+            [self handleRobotActionRequest:message];
+            break;
+        case ROBRobotActionMessageKindActionCancel:
+            [self handleRobotActionCancellation:message];
+            break;
+        case ROBRobotActionMessageKindControllerHello:
+        case ROBRobotActionMessageKindActionStatus:
+            break;
+    }
+}
+
+- (IBAction)approveRobotAction:(id)sender
+{
+    ROBRobotActionMessage *request = self.currentRobotActionRequest;
+    if (!self.robotActionsEnabled || request == nil ||
+        self.currentRobotActionState != ROBRobotActionStatePending) {
+        return;
+    }
+    if (request.isExpired) {
+        [self expirePendingRobotActionRequest:request];
+        return;
+    }
+
+    // Approval only records a human decision. It deliberately sends no
+    // executing state and calls no robot/servo/tread API.
+    [self.robotActionExpiryTimer invalidate];
+    self.robotActionExpiryTimer = nil;
+    self.currentRobotActionState = ROBRobotActionStateAccepted;
+    [self sendRobotActionStatusForRequest:request
+                                   state:ROBRobotActionStateAccepted
+                                  detail:@"Operator approved. Perform the action manually; this console does not actuate hardware."
+                                  result:@{}];
+    [self refreshRobotActionConsole];
+}
+
+- (IBAction)rejectRobotAction:(id)sender
+{
+    if (self.currentRobotActionRequest == nil ||
+        self.currentRobotActionState != ROBRobotActionStatePending) {
+        return;
+    }
+    [self.robotActionExpiryTimer invalidate];
+    self.robotActionExpiryTimer = nil;
+    self.currentRobotActionState = ROBRobotActionStateRejected;
+    [self sendRobotActionStatusForRequest:self.currentRobotActionRequest
+                                   state:ROBRobotActionStateRejected
+                                  detail:@"Operator rejected the proposed action. No hardware was actuated."
+                                  result:@{}];
+    [self refreshRobotActionConsole];
+}
+
+- (IBAction)completeRobotAction:(id)sender
+{
+    if (self.currentRobotActionRequest == nil ||
+        (self.currentRobotActionState != ROBRobotActionStateAccepted &&
+         self.currentRobotActionState != ROBRobotActionStateExecuting)) {
+        return;
+    }
+    self.currentRobotActionState = ROBRobotActionStateCompleted;
+    [self sendRobotActionStatusForRequest:self.currentRobotActionRequest
+                                   state:ROBRobotActionStateCompleted
+                                  detail:@"Operator confirmed the physical outcome after manual action."
+                                  result:@{
+                                      @"operator_confirmed": @YES,
+                                      @"physical_outcome": @"completed",
+                                      @"console_actuated_hardware": @NO
+                                  }];
+    [self refreshRobotActionConsole];
+}
+
+- (IBAction)failRobotAction:(id)sender
+{
+    if (self.currentRobotActionRequest == nil ||
+        (self.currentRobotActionState != ROBRobotActionStateAccepted &&
+         self.currentRobotActionState != ROBRobotActionStateExecuting)) {
+        return;
+    }
+    self.currentRobotActionState = ROBRobotActionStateFailed;
+    [self sendRobotActionStatusForRequest:self.currentRobotActionRequest
+                                   state:ROBRobotActionStateFailed
+                                  detail:@"Operator confirmed that the manual physical action failed."
+                                  result:@{
+                                      @"operator_confirmed": @YES,
+                                      @"physical_outcome": @"failed",
+                                      @"console_actuated_hardware": @NO
+                                  }];
+    [self refreshRobotActionConsole];
+}
+
+- (IBAction)cancelRobotAction:(id)sender
+{
+    if (self.currentRobotActionRequest == nil ||
+        (self.currentRobotActionState != ROBRobotActionStatePending &&
+         self.currentRobotActionState != ROBRobotActionStateAccepted &&
+         self.currentRobotActionState != ROBRobotActionStateExecuting)) {
+        return;
+    }
+    BOOL operatorConfirmedPhysicalStop =
+        self.currentRobotActionState == ROBRobotActionStateAccepted ||
+        self.currentRobotActionState == ROBRobotActionStateExecuting;
+    [self.robotActionExpiryTimer invalidate];
+    self.robotActionExpiryTimer = nil;
+    self.currentRobotActionState = ROBRobotActionStateCancelled;
+    [self sendRobotActionStatusForRequest:self.currentRobotActionRequest
+                                   state:ROBRobotActionStateCancelled
+                                  detail:(operatorConfirmedPhysicalStop
+                                      ? @"Operator confirmed that the manual action stopped or was safely cancelled."
+                                      : @"Operator cancelled the pending request before approval. No hardware was actuated.")
+                                  result:@{
+                                      @"operator_confirmed_stop": @(operatorConfirmedPhysicalStop),
+                                      @"console_actuated_hardware": @NO
+                                  }];
+    [self refreshRobotActionConsole];
+}
+
 -(IBAction) reconnectAutoNet:(id)sender {
     //Reconnection Proceedure...needs to be embedded into autoNetClient API and pushed to Github repo
+    [self setRobotActionsEnabled:NO reason:@"AutoNet reconnect requested; AI actions reset to Off"];
+    self.didAnnounceRobotActionConsole = NO;
     [self.autoNetClient stop];
     dispatch_async(dispatch_get_main_queue(), ^(){
         self.chatConnectionStatus.backgroundColor = [UIColor redColor];
@@ -878,6 +1773,30 @@
 }
 
 - (void) didReceiveData:(NSData *)data {
+    ROBAutonomySessionMessage *autonomyMessage = [ROBAutonomySessionWireCodec decodeEnvelopeData:data];
+    if (autonomyMessage != nil) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.chatConnectionStatus.backgroundColor = [UIColor greenColor];
+            [self handleAutonomyMessage:autonomyMessage];
+            if (!self.didAnnounceRobotActionConsole) {
+                [self announceRobotActionConsole];
+            }
+        });
+        return;
+    }
+
+    ROBRobotActionMessage *robotActionMessage = [ROBRobotActionWireCodec decodeEnvelopeData:data];
+    if (robotActionMessage != nil) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.chatConnectionStatus.backgroundColor = [UIColor greenColor];
+            if (!self.didAnnounceRobotActionConsole) {
+                [self announceRobotActionConsole];
+            }
+            [self handleRobotActionMessage:robotActionMessage];
+        });
+        return;
+    }
+
     NSError *error = nil;
     NSSet *classSet = [NSSet setWithObjects:[NSDictionary class], [NSString class], [NSData class], nil];
     NSDictionary *messageDictionary = (NSDictionary*) [NSKeyedUnarchiver unarchivedObjectOfClasses:classSet fromData:data error:&error];
@@ -892,6 +1811,9 @@
     
     dispatch_async(dispatch_get_main_queue(), ^(){
         self.chatConnectionStatus.backgroundColor = [UIColor greenColor];
+        if (!self.didAnnounceRobotActionConsole) {
+            [self announceRobotActionConsole];
+        }
     });
     if ([msg isEqualToString:@"Clear input text message"]) {
         dispatch_async(dispatch_get_main_queue(), ^(){
@@ -1042,6 +1964,13 @@
 
 - (IBAction)rpLidarZoomAction:(UISlider *)sender {
     self.rpLidarPolarView.zoomScale = sender.value;
+}
+
+- (void)dealloc
+{
+    [self.robotActionExpiryTimer invalidate];
+    [self.robotActionHelloTimer invalidate];
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 

@@ -127,7 +127,9 @@
                                         </constraints>
                                         <state key="normal" title="Speak"/>
                                         <connections>
-                                            <action selector="recordButtonTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="v2O-aj-QJS"/>
+                                            <action selector="recordButtonTouchDown:" destination="BYZ-38-t0r" eventType="touchDown" id="RAC-RD-P01"/>
+                                            <action selector="recordButtonTouchUp:" destination="BYZ-38-t0r" eventType="touchUpInside" id="RAC-RU-P01"/>
+                                            <action selector="recordButtonTouchUp:" destination="BYZ-38-t0r" eventType="touchUpOutside" id="RAC-RO-P01"/>
                                         </connections>
                                     </button>
                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="5IH-Jh-Heh">
@@ -410,7 +412,7 @@
                                         <state key="normal" title="Button"/>
                                         <buttonConfiguration key="configuration" style="tinted" title="Reconnect"/>
                                         <connections>
-                                            <action selector="RequestToBeMasterControllerAction:" destination="BYZ-38-t0r" eventType="touchUpInside" id="XS7-se-uiq"/>
+                                            <action selector="reconnectAutoNet:" destination="BYZ-38-t0r" eventType="touchUpInside" id="XS7-se-uiq"/>
                                         </connections>
                                     </button>
                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="GIC-as-kyJ">
@@ -435,6 +437,107 @@
                                     </button>
                                 </subviews>
                             </stackView>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="RAC-PN-P01">
+                                <rect key="frame" x="343" y="37" width="680" height="152"/>
+                                <subviews>
+                                    <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="2" translatesAutoresizingMaskIntoConstraints="NO" id="RAC-ST-P01">
+                                        <rect key="frame" x="8" y="5" width="664" height="142"/>
+                                        <subviews>
+                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="PER-ACTION BUTTONS DO NOT ACTUATE — AUTONOMY IS A SEPARATE BOUNDED SESSION" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="YES" minimumScaleFactor="0.65" translatesAutoresizingMaskIntoConstraints="NO" id="RAC-SF-P01">
+                                                <rect key="frame" x="0.0" y="0.0" width="664" height="14"/>
+                                                <constraints><constraint firstAttribute="height" constant="14" id="RAC-SH-P01"/></constraints>
+                                                <fontDescription key="fontDescription" type="boldSystem" pointSize="11"/>
+                                                <color key="textColor" red="1" green="0.34901960784313724" blue="0.25098039215686274" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                                <nil key="highlightedColor"/>
+                                            </label>
+                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Robot action: No pending request" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="YES" minimumScaleFactor="0.75" translatesAutoresizingMaskIntoConstraints="NO" id="RAC-TI-P01">
+                                                <rect key="frame" x="0.0" y="16" width="664" height="16"/>
+                                                <constraints><constraint firstAttribute="height" constant="16" id="RAC-TH-P01"/></constraints>
+                                                <fontDescription key="fontDescription" type="boldSystem" pointSize="13"/>
+                                                <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                                <nil key="highlightedColor"/>
+                                            </label>
+                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Incoming Gemini robot actions require an explicit operator decision." textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="YES" minimumScaleFactor="0.75" translatesAutoresizingMaskIntoConstraints="NO" id="RAC-DE-P01">
+                                                <rect key="frame" x="0.0" y="34" width="664" height="28"/>
+                                                <constraints><constraint firstAttribute="height" constant="28" id="RAC-DH-P01"/></constraints>
+                                                <fontDescription key="fontDescription" type="system" pointSize="11"/>
+                                                <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                                <nil key="highlightedColor"/>
+                                            </label>
+                                            <stackView opaque="NO" contentMode="scaleToFill" distribution="fillEqually" spacing="4" translatesAutoresizingMaskIntoConstraints="NO" id="RAC-BS-P01">
+                                                <rect key="frame" x="0.0" y="64" width="664" height="28"/>
+                                                <subviews>
+                                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="RAC-EN-P01">
+                                                        <rect key="frame" x="0.0" y="0.0" width="107" height="28"/>
+                                                        <state key="normal" title="AI Actions: Off"/>
+                                                        <connections><action selector="toggleRobotActionsEnabled:" destination="BYZ-38-t0r" eventType="touchUpInside" id="RAC-EA-P01"/></connections>
+                                                    </button>
+                                                    <button opaque="NO" contentMode="scaleToFill" enabled="NO" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="RAC-AP-P01">
+                                                        <rect key="frame" x="111" y="0.0" width="106.5" height="28"/>
+                                                        <state key="normal" title="Approve"/>
+                                                        <connections><action selector="approveRobotAction:" destination="BYZ-38-t0r" eventType="touchUpInside" id="RAC-AA-P01"/></connections>
+                                                    </button>
+                                                    <button opaque="NO" contentMode="scaleToFill" enabled="NO" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="RAC-RJ-P01">
+                                                        <rect key="frame" x="221.5" y="0.0" width="106.5" height="28"/>
+                                                        <state key="normal" title="Reject"/>
+                                                        <connections><action selector="rejectRobotAction:" destination="BYZ-38-t0r" eventType="touchUpInside" id="RAC-RA-P01"/></connections>
+                                                    </button>
+                                                    <button opaque="NO" contentMode="scaleToFill" enabled="NO" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="RAC-CO-P01">
+                                                        <rect key="frame" x="332" y="0.0" width="107" height="28"/>
+                                                        <state key="normal" title="Complete"/>
+                                                        <connections><action selector="completeRobotAction:" destination="BYZ-38-t0r" eventType="touchUpInside" id="RAC-CA-P01"/></connections>
+                                                    </button>
+                                                    <button opaque="NO" contentMode="scaleToFill" enabled="NO" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="RAC-FA-P01">
+                                                        <rect key="frame" x="443" y="0.0" width="106.5" height="28"/>
+                                                        <state key="normal" title="Failed"/>
+                                                        <connections><action selector="failRobotAction:" destination="BYZ-38-t0r" eventType="touchUpInside" id="RAC-FF-P01"/></connections>
+                                                    </button>
+                                                    <button opaque="NO" contentMode="scaleToFill" enabled="NO" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="RAC-CN-P01">
+                                                        <rect key="frame" x="553.5" y="0.0" width="110.5" height="28"/>
+                                                        <state key="normal" title="Cancel"/>
+                                                        <connections><action selector="cancelRobotAction:" destination="BYZ-38-t0r" eventType="touchUpInside" id="RAC-NA-P01"/></connections>
+                                                    </button>
+                                                </subviews>
+                                                <constraints><constraint firstAttribute="height" constant="28" id="RAC-BH-P01"/></constraints>
+                                            </stackView>
+                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Autonomy INACTIVE — Pair Cerebro, then explicitly start a bounded social-roam session." textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="YES" minimumScaleFactor="0.65" translatesAutoresizingMaskIntoConstraints="NO" id="AUT-ST-P01">
+                                                <rect key="frame" x="0.0" y="94" width="664" height="18"/>
+                                                <constraints><constraint firstAttribute="height" constant="18" id="AUT-SH-P01"/></constraints>
+                                                <fontDescription key="fontDescription" type="boldSystem" pointSize="11"/>
+                                                <color key="textColor" systemColor="systemYellowColor"/>
+                                                <nil key="highlightedColor"/>
+                                            </label>
+                                            <stackView opaque="NO" contentMode="scaleToFill" distribution="fillEqually" spacing="6" translatesAutoresizingMaskIntoConstraints="NO" id="AUT-BS-P01">
+                                                <rect key="frame" x="0.0" y="114" width="664" height="28"/>
+                                                <subviews>
+                                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="AUT-PR-P01">
+                                                        <rect key="frame" x="0.0" y="0.0" width="329" height="28"/>
+                                                        <state key="normal" title="Pair Cerebro…"/>
+                                                        <connections><action selector="pairCerebroController:" destination="BYZ-38-t0r" eventType="touchUpInside" id="AUT-PA-P01"/></connections>
+                                                    </button>
+                                                    <button opaque="NO" contentMode="scaleToFill" enabled="NO" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="AUT-MD-P01">
+                                                        <rect key="frame" x="335" y="0.0" width="329" height="28"/>
+                                                        <state key="normal" title="Start Social Roam"/>
+                                                        <connections><action selector="toggleAutonomySession:" destination="BYZ-38-t0r" eventType="touchUpInside" id="AUT-MA-P01"/></connections>
+                                                    </button>
+                                                </subviews>
+                                                <constraints><constraint firstAttribute="height" constant="28" id="AUT-BH-P01"/></constraints>
+                                            </stackView>
+                                        </subviews>
+                                    </stackView>
+                                </subviews>
+                                <color key="backgroundColor" white="0.0" alpha="0.82" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <constraints>
+                                    <constraint firstItem="RAC-ST-P01" firstAttribute="leading" secondItem="RAC-PN-P01" secondAttribute="leading" constant="8" id="RAC-IL-P01"/>
+                                    <constraint firstAttribute="trailing" secondItem="RAC-ST-P01" secondAttribute="trailing" constant="8" id="RAC-IR-P01"/>
+                                    <constraint firstItem="RAC-ST-P01" firstAttribute="top" secondItem="RAC-PN-P01" secondAttribute="top" constant="5" id="RAC-IT-P01"/>
+                                    <constraint firstAttribute="bottom" secondItem="RAC-ST-P01" secondAttribute="bottom" constant="5" id="RAC-IB-P01"/>
+                                    <constraint firstAttribute="width" priority="750" constant="680" id="RAC-PW-P01"/>
+                                </constraints>
+                                <userDefinedRuntimeAttributes>
+                                    <userDefinedRuntimeAttribute type="number" keyPath="layer.cornerRadius"><real key="value" value="8"/></userDefinedRuntimeAttribute>
+                                </userDefinedRuntimeAttributes>
+                            </view>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
@@ -452,6 +555,10 @@
                             <constraint firstItem="bYj-N6-twv" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" id="lOz-DA-9K3"/>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="dMv-I7-WGi" secondAttribute="trailing" constant="7" id="lbc-iO-nIO"/>
                             <constraint firstItem="qyV-cu-EjP" firstAttribute="centerX" secondItem="bYj-N6-twv" secondAttribute="centerX" id="ppT-3z-C5M"/>
+                            <constraint firstItem="RAC-PN-P01" firstAttribute="centerX" secondItem="6Tk-OE-BBY" secondAttribute="centerX" id="RAC-CX-P01"/>
+                            <constraint firstItem="RAC-PN-P01" firstAttribute="top" secondItem="qyV-cu-EjP" secondAttribute="bottom" constant="6" id="RAC-TP-P01"/>
+                            <constraint firstItem="RAC-PN-P01" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="8" id="RAC-LG-P01"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="RAC-PN-P01" secondAttribute="trailing" constant="8" id="RAC-RG-P01"/>
                             <constraint firstItem="VxX-AV-Mmt" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="20" id="sP1-LJ-0pa"/>
                             <constraint firstItem="qyV-cu-EjP" firstAttribute="top" secondItem="8bC-Xf-vdC" secondAttribute="top" id="t6U-Jm-cUv"/>
                             <constraint firstItem="bYj-N6-twv" firstAttribute="trailing" secondItem="6Tk-OE-BBY" secondAttribute="trailing" id="xNy-ZF-bQc"/>
@@ -459,11 +566,24 @@
                     </view>
                     <connections>
                         <outlet property="chatConnectionStatus" destination="GIC-as-kyJ" id="m1U-WP-cr8"/>
+                        <outlet property="autonomyModeButton" destination="AUT-MD-P01" id="AUT-OM-P01"/>
+                        <outlet property="autonomyStatusLabel" destination="AUT-ST-P01" id="AUT-OS-P01"/>
                         <outlet property="daydreamView" destination="Ql8-zs-U2H" id="cEd-gP-Nht"/>
                         <outlet property="languageTableView" destination="cPl-Lr-RHd" id="Sq5-pZ-jKB"/>
+                        <outlet property="pairControllerButton" destination="AUT-PR-P01" id="AUT-OP-P01"/>
                         <outlet property="locationLabel" destination="uxo-0O-2XG" id="SyY-du-H6g"/>
                         <outlet property="rotationLabel" destination="h3j-SH-Kpv" id="VcB-iG-JB8"/>
                         <outlet property="rpLidarPolarView" destination="bYj-N6-twv" id="1j2-YF-dYZ"/>
+                        <outlet property="robotActionApproveButton" destination="RAC-AP-P01" id="RAC-OA-P01"/>
+                        <outlet property="robotActionCancelButton" destination="RAC-CN-P01" id="RAC-ON-P01"/>
+                        <outlet property="robotActionCompleteButton" destination="RAC-CO-P01" id="RAC-OC-P01"/>
+                        <outlet property="robotActionDetailLabel" destination="RAC-DE-P01" id="RAC-OD-P01"/>
+                        <outlet property="robotActionFailedButton" destination="RAC-FA-P01" id="RAC-OF-P01"/>
+                        <outlet property="robotActionPanel" destination="RAC-PN-P01" id="RAC-OP-P01"/>
+                        <outlet property="robotActionRejectButton" destination="RAC-RJ-P01" id="RAC-OR-P01"/>
+                        <outlet property="robotActionSafetyLabel" destination="RAC-SF-P01" id="RAC-OS-P01"/>
+                        <outlet property="robotActionTitleLabel" destination="RAC-TI-P01" id="RAC-OT-P01"/>
+                        <outlet property="robotActionsEnabledButton" destination="RAC-EN-P01" id="RAC-OE-P01"/>
                         <outlet property="speedSlider" destination="9cX-03-UZK" id="qQ1-AQ-g89"/>
                         <outlet property="textView" destination="VxX-AV-Mmt" id="Ezd-gD-9oU"/>
                     </connections>
@@ -476,6 +596,9 @@
     <resources>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+        <systemColor name="systemYellowColor">
+            <color red="1" green="0.80000000000000004" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
     </resources>
 </document>
