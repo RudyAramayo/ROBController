@@ -1173,6 +1173,7 @@
 {
     BOOL pairingConfigured = self.autoNetClient.isPairingConfigured;
     BOOL connected = self.autoNetClient.isConnected;
+    self.chatConnectionStatus.backgroundColor = connected ? [UIColor greenColor] : [UIColor redColor];
     BOOL sessionMayBeActive = self.autonomySessionID.length > 0 || self.autonomyStartRequested ||
         self.autonomySessionState == ROBAutonomySessionStateActive ||
         self.autonomySessionState == ROBAutonomySessionStateStopping;
@@ -1765,18 +1766,24 @@
     [self setRobotActionsEnabled:NO reason:@"AutoNet reconnect requested; AI actions reset to Off"];
     self.didAnnounceRobotActionConsole = NO;
     [self.autoNetClient stop];
-    dispatch_async(dispatch_get_main_queue(), ^(){
-        self.chatConnectionStatus.backgroundColor = [UIColor redColor];
-    });
-
     [self.autoNetClient startBrowsing];
+}
+
+- (void)autoNetClient:(AutoNetClient *)client didChangeConnectionState:(BOOL)isConnected
+{
+    if (client != self.autoNetClient) {
+        return;
+    }
+
+    // AutoNetClient delivers this on the main queue after reciprocal pairing
+    // proof succeeds and whenever that authenticated readiness is lost.
+    [self refreshAutonomyConsole];
 }
 
 - (void) didReceiveData:(NSData *)data {
     ROBAutonomySessionMessage *autonomyMessage = [ROBAutonomySessionWireCodec decodeEnvelopeData:data];
     if (autonomyMessage != nil) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            self.chatConnectionStatus.backgroundColor = [UIColor greenColor];
             [self handleAutonomyMessage:autonomyMessage];
             if (!self.didAnnounceRobotActionConsole) {
                 [self announceRobotActionConsole];
@@ -1788,7 +1795,6 @@
     ROBRobotActionMessage *robotActionMessage = [ROBRobotActionWireCodec decodeEnvelopeData:data];
     if (robotActionMessage != nil) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            self.chatConnectionStatus.backgroundColor = [UIColor greenColor];
             if (!self.didAnnounceRobotActionConsole) {
                 [self announceRobotActionConsole];
             }
@@ -1810,7 +1816,6 @@
     //TODO: make sure to send all the RPLidar M2M1 mapper data as well...
     
     dispatch_async(dispatch_get_main_queue(), ^(){
-        self.chatConnectionStatus.backgroundColor = [UIColor greenColor];
         if (!self.didAnnounceRobotActionConsole) {
             [self announceRobotActionConsole];
         }
@@ -1819,11 +1824,6 @@
         dispatch_async(dispatch_get_main_queue(), ^(){
             self.currentUserVerbalQueryString = @"";
             self.textView.text = @"";
-        });
-    }
-    if ([msg isEqualToString:@"Hey I got your message"]) {
-        dispatch_async(dispatch_get_main_queue(), ^(){
-            self.chatConnectionStatus.backgroundColor = [UIColor greenColor];
         });
     }
     if ([sender isEqualToString:@"rpLidar"]) {

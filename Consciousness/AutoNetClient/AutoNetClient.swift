@@ -9,8 +9,16 @@ import Dispatch
 import Foundation
 import Network
 
-@objc public protocol AutoNetClientDataDelegate {
+@objc public protocol AutoNetClientDataDelegate: AnyObject {
     func didReceiveData(_ data: NSData)
+
+    /// Reports authenticated application readiness, not merely QUIC/TLS state.
+    /// The callback is delivered on the main queue and is also sent when the
+    /// delegate is installed so Objective-C callers can initialize their UI.
+    @objc optional func autoNetClient(
+        _ client: AutoNetClient,
+        didChangeConnectionState isConnected: Bool
+    )
 }
 
 /// Objective-C-compatible client facade retained for existing controller code.
@@ -29,8 +37,18 @@ import Network
     public var port: NWEndpoint.Port?
     public var service: String? = ""
     public var browser: NWBrowser?
-    public var isConnected = false
-    public var dataDelegate: AutoNetClientDataDelegate?
+    public private(set) var isConnected = false {
+        didSet {
+            guard oldValue != isConnected else { return }
+            notifyConnectionState(isConnected)
+        }
+    }
+    public weak var dataDelegate: AutoNetClientDataDelegate? {
+        didSet {
+            guard dataDelegate != nil else { return }
+            notifyConnectionState(isConnected)
+        }
+    }
 
     private var generation: UInt64 = 0
     private var reconnectAttempt = 0
@@ -166,6 +184,13 @@ import Network
 
     func didReceiveData(_ data: Data) {
         dataDelegate?.didReceiveData(data as NSData)
+    }
+
+    private func notifyConnectionState(_ connected: Bool) {
+        performOnMain { [weak self] in
+            guard let self else { return }
+            self.dataDelegate?.autoNetClient?(self, didChangeConnectionState: connected)
+        }
     }
 
     private func beginBrowsing(resetBackoff: Bool) {
