@@ -22,6 +22,7 @@ enum DataMessageType: UInt32 {
   case pairingProof = 4
   case pairingAccepted = 5
   case pairingRejected = 6
+  case pairingHello = 8
 }
 
 enum AutoNetTransportError: LocalizedError {

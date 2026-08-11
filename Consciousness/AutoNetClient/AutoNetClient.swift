@@ -238,11 +238,23 @@ import Network
                       let newBrowser,
                       self.generation == currentGeneration,
                       self.browser === newBrowser else { return }
-                if case .failed(let error) = state {
+                switch state {
+                case .ready:
+                    print("client: Bonjour browser ready for \(service)")
+                case .waiting(let error):
+                    self.isConnected = false
+                    print("client: Bonjour browser waiting - \(error)")
+                case .failed(let error):
                     print("client: browser failed - \(error)")
                     newBrowser.cancel()
                     self.browser = nil
                     self.scheduleReconnect(expectedGeneration: currentGeneration)
+                case .cancelled:
+                    print("client: Bonjour browser cancelled")
+                case .setup:
+                    break
+                @unknown default:
+                    print("client: Bonjour browser entered an unknown state")
                 }
             }
         }
@@ -262,16 +274,47 @@ import Network
                         print("client: pair with Cerebro before selecting a v2 service")
                         return
                     }
-                    selected = results
-                        .filter { ROBControlPairing.robotID(fromBonjourMetadata: $0.metadata) == pairedRobotID }
-                        .sorted { $0.endpoint.debugDescription < $1.endpoint.debugDescription }
-                        .first
+                    let discovered = results.compactMap {
+                        ROBControlPairing.robotID(fromBonjourMetadata: $0.metadata)
+                    }
+                    let matches = results.filter {
+                        ROBControlPairing.robotID(fromBonjourMetadata: $0.metadata) == pairedRobotID
+                    }
+                    print(
+                        "client: Bonjour found \(results.count) service(s); "
+                            + "paired robot \(pairedRobotID.uuidString.lowercased()); "
+                            + "advertised robot IDs \(discovered.map { $0.uuidString.lowercased() })"
+                    )
+                    if let exactMatch = matches
+                        .sorted(by: { $0.endpoint.debugDescription < $1.endpoint.debugDescription })
+                        .first {
+                        selected = exactMatch
+                    } else if results.count == 1, discovered.isEmpty {
+                        // Some iOS releases report the Bonjour endpoint before
+                        // exposing its TXT metadata (and may never surface the
+                        // TXT record through NWBrowser.Result.Metadata). It is
+                        // safe to try the sole candidate: QUIC still requires
+                        // the exact certificate pin from the installed code,
+                        // followed by the reciprocal pairing proof. A service
+                        // for any other Cerebro identity therefore fails closed.
+                        selected = results.first
+                        print(
+                            "client: sole Cerebro service has no TXT metadata; "
+                                + "attempting certificate-pinned connection"
+                        )
+                    } else {
+                        selected = nil
+                    }
                 case .legacy:
                     selected = results.sorted {
                         $0.endpoint.debugDescription < $1.endpoint.debugDescription
                     }.first
                 }
-                guard let result = selected else { return }
+                guard let result = selected else {
+                    print("client: no Bonjour service matches the installed pairing")
+                    return
+                }
+                print("client: connecting to paired Cerebro service \(result.endpoint)")
                 self.connect(
                     to: result.endpoint,
                     mode: mode,

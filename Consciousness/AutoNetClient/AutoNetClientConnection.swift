@@ -23,6 +23,7 @@ final class AutoNetClientConnection {
     }
 
     private static let authenticationTimeout: TimeInterval = 5
+    private static let pairingHelloSize = 4_096
 
     let nwConnection: NWConnection
     private let transportMode: AutoNetTransportMode
@@ -110,7 +111,17 @@ final class AutoNetClientConnection {
         }
         authenticationTimeoutWorkItem = timeout
         queue.asyncAfter(deadline: .now() + Self.authenticationTimeout, execute: timeout)
-        beginReceivingIfNeeded()
+        var hello = Data(credential!.controllerID.uuidString.lowercased().utf8)
+        hello.append(Data(repeating: 0, count: Self.pairingHelloSize - hello.count))
+        sendFrame(type: .pairingHello, data: hello) { [weak self] error in
+            guard let self else { return }
+            if let error {
+                self.stopLocked(error: error)
+            } else {
+                print("client: pairing hello sent; awaiting Cerebro challenge")
+                self.beginReceivingIfNeeded()
+            }
+        }
     }
 
     private func setReady(_ ready: Bool) {
@@ -153,7 +164,8 @@ final class AutoNetClientConnection {
                 if !data.isEmpty { self.delegate?.didReceiveData(data) }
             case .setAutomationScript:
                 print("client: setAutomationScript is not implemented")
-            case .pairingChallenge, .pairingProof, .pairingAccepted, .pairingRejected, .invalid:
+            case .pairingChallenge, .pairingProof, .pairingAccepted, .pairingRejected,
+                 .pairingHello, .invalid:
                 self.stopLocked(error: NWError.posix(.EPROTO))
                 return
             }
