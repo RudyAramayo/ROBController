@@ -17,6 +17,7 @@ struct ROBRobotActionProtocolFixtureTests {
         try testRequestRoundTrip()
         try testStatusAndCancellationRoundTrip()
         try testInvalidAndExpiredRequests()
+        try testActionArgumentKeysAreExact()
         try testOversizedPayloadsAreRejected()
         try testEnvelopeSenderBinding()
         try testAutonomySessionRoundTripAndBounds()
@@ -151,6 +152,44 @@ struct ROBRobotActionProtocolFixtureTests {
             expiresAt: Date(timeIntervalSinceNow: 121)
         )
         try expect(excessiveLifetime.validationError != nil, "Excessive request lifetime was accepted")
+    }
+
+    private static func testActionArgumentKeysAreExact() throws {
+        let rawJointGesture = ROBRobotActionMessage.actionRequest(
+            callID: "gemini-call-raw-joints",
+            action: "play_gesture",
+            arguments: [
+                "gesture": "approved-wave",
+                "positions_rad": [0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0],
+            ],
+            senderID: "cerebro-1",
+            recipientID: "controller-1",
+            expiresAt: Date(timeIntervalSinceNow: 30)
+        )
+        try expect(
+            rawJointGesture.validationError != nil,
+            "play_gesture accepted model-supplied raw joint data"
+        )
+        try expect(
+            ROBRobotActionWireCodec.archive(
+                rawJointGesture,
+                legacySender: rawJointGesture.senderID
+            ) == nil,
+            "A play_gesture request with raw joint data was serialized"
+        )
+
+        let stopWithUnknownKey = ROBRobotActionMessage.actionRequest(
+            callID: "gemini-call-stop-extra",
+            action: "stop_motion",
+            arguments: ["surprise": true],
+            senderID: "cerebro-1",
+            recipientID: "controller-1",
+            expiresAt: Date(timeIntervalSinceNow: 30)
+        )
+        try expect(
+            stopWithUnknownKey.validationError != nil,
+            "stop_motion accepted an unknown argument"
+        )
     }
 
     private static func testOversizedPayloadsAreRejected() throws {
