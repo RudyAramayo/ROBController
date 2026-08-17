@@ -69,8 +69,6 @@
 @property (nonatomic, retain) IBOutlet UILabel * locationLabel;
 @property (nonatomic, retain) IBOutlet UILabel * rotationLabel;
 
-//@property (nonatomic, retain) IBOutlet UIButton * recordButton; //auto start in english instead? change upon language  selection?
-
 @property (readwrite, retain) CLLocationManager *locationManager;
 @property (readwrite, retain) CMMotionManager *motionManager;
 @property (readwrite, retain) CMAttitude *referenceAttitude;
@@ -93,8 +91,6 @@
 @property (nonatomic, strong) ROBAutonomySessionMessage *pendingAutonomyCommand;
 @property (nonatomic, copy) NSString *autonomyStatusDetail;
 @property (nonatomic, assign) BOOL autonomyStartRequested;
-//@property(readwrite, strong) ResNetController *resnet;
-
 // Gemini may propose a bounded, high-level action, but this controller is only
 // an operator approval/status console. These controls never drive hardware.
 @property (weak, nonatomic) IBOutlet UIView *robotActionPanel;
@@ -163,11 +159,6 @@
         return;
     }
     
-    // store all of the measurements, just so we can see what kind of data we might receive
-    //[self.locationMeasurements addObject:newLocation];
-    
-    // update the display with the new location data
-    //[self.tableView reloadData];
 }
 
 
@@ -312,22 +303,14 @@
          target_Motor2_brake_command 0
         */
         
-        //CFTimeInterval elapsedTime = CACurrentMediaTime() - self->startTime;
-        //self->startTime = CACurrentMediaTime();
-        //printf("%f\n", elapsedTime * 100.0);
-        //*******
-        
         // perform some action
         
         
         // Find out the Z rotation of the device by doing some trig on the accelerometer values for X and Y
         float Lat = self.locationManager.location.coordinate.latitude;
         float Long = self.locationManager.location.coordinate.longitude;
-        //NSLog(@"Lat : %f  Long : %f",Lat,Long);
-        
         if (self.referenceAttitude)
             [data.attitude multiplyByInverseOfAttitude:self.referenceAttitude];
-        //NSLog(@"data.attitude.yaw = %f, data.attitude.pitch = %f, data.attitude.roll = %f", data.attitude.yaw, data.attitude.pitch, data.attitude.roll);
         
         self.yaw = data.attitude.yaw;
         self.pitch = data.attitude.pitch;
@@ -347,7 +330,6 @@
                                 self.flipper_FORWARD_isDown, self.flipper_RELAX_isDown, self.flipper_BACKWARD_isDown, self.flipper_BRAKELOCK,
                                 self.lact_BACK_isDown, self.lact_GRAVITY_toggle, self.lact_FRONT_isDown,
                                 self.speed, self.speed_PlayPause_toggle, self.speed_ForwardReverse_toggle, self.currentUserVerbalQueryString];
-        //NSLog(@"dataString = %@", dataString);
         NSDictionary *messageDict = @{@"message":dataString, @"sender":[[[UIDevice currentDevice] identifierForVendor] UUIDString]};
         NSError *error = nil;
         [self.autoNetClient sendWithData:[NSKeyedArchiver archivedDataWithRootObject:messageDict requiringSecureCoding:false error:&error]];
@@ -369,35 +351,9 @@
         [weakSelfForHello refreshAutonomyConsole];
     }];
     [self refreshAutonomyConsole];
-    /* // !!!! Before WE ENABLE AUTOREJOIN MAKE SURE THE INITIAL BASE NETWORK NEEDS IT !!!!
-    [NSTimer scheduledTimerWithTimeInterval:10 repeats:true block:^(NSTimer *timer){
-        printf(".");
-        if (self.chatConnectionStatus.backgroundColor == [UIColor redColor])
-        {
-            //self.chatManager = nil;
-            
-            NSString *newName = [NSString stringWithFormat:@"Brain%i", rand()%2000];
-            NSLog(@"Rejoining Command&Control Server as %@", newName);
-            self.chatManager = [[NZChatManager alloc] joinWithDisplayName:newName];
-            //self.chatManager.chatDelegate = self;
-        }
-        
-    }];*/
-    //---
     //Aurora Setup audio tap conflicts with speech audio tap...???
     // how to merge the 2 audio captures to be used together? DTS Ticket material
-    //[glview setup];
-    //[glview startAnimation];
-    //---
-    
-    
-//    notificationCenter.addObserver(self,
-//                selector: #selector(systemVolumeDidChange),
-//                name: "AVSystemController_SystemVolumeDidChangeNotification",
-//                object: nil
-//            )
-//    
-    
+
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(systemVolumeDidChange:) name:@"AVSystemController_SystemVolumeDidChangeNotification" object:nil];
     
     self.safeToStartRecording = true;
@@ -416,13 +372,6 @@
 
 - (void) speechAudioInit
 {
-    //dispatch_async(dispatch_get_main_queue(), ^(){
-    //    self.languageTableView.backgroundColor = [UIColor clearColor];
-    //});
-    
-    //[self closeMenu];
-    //self.isAnimating = false;
-    
     self.localeArray = @[
                          //English
                          @{@"locale_id":@"en-US",@"locale_string":@"English (United States)"},
@@ -516,34 +465,16 @@
                          ].mutableCopy;
     self.selectedLocaleIndex = 0;
     
-    //THis button controls auto speech recording
-    //[self recordButtonTapped:self];
 }
 
 - (IBAction)recordButtonTouchDown:(id)sender {
-//    if (self.safeToStartRecording) {
-        self.safeToStartRecording = false;
-        [self setupSpeechRecognition];
-        NSLog(@"Recording has started...");
-//    } else {
-//        NSError *outError;
-//        
-//        [self.audioEngine prepare];
-//        [self.audioEngine startAndReturnError:&outError];
-//        if (outError)
-//            NSLog(@"Error %@", outError);
-//    }
+    self.safeToStartRecording = false;
+    [self setupSpeechRecognition];
+    NSLog(@"Recording has started...");
 }
 
 - (IBAction)recordButtonTouchUp:(id)sender {
     [self.task cancel];
-//    [self endRecognizer];
-//    if (self.audioEngine.isRunning)
-//    {
-//        [self.audioEngine pause];
-//        //self.currentUserVerbalQueryString = @"";
-//        //self.textView.text = @"";
-//    }
 }
 
 - (void)didReceiveMemoryWarning {
@@ -632,7 +563,6 @@
     [[AVAudioSession sharedInstance] setActive:YES error:nil];
     
     [self startRecognizer];
-    //[self startCapture];
     
     self.audioEngine = [[AVAudioEngine alloc] init];
     self.speechSynthesizer  = [[AVSpeechSynthesizer alloc] init];
@@ -653,7 +583,6 @@
         if (status == SFSpeechRecognizerAuthorizationStatusAuthorized){
             
             self.speechRequest = [SFSpeechAudioBufferRecognitionRequest new];
-            //self.speechRequest.shouldReportPartialResults = YES;
             
             AVAudioInputNode *inputNode = [self.audioEngine inputNode];
             
@@ -665,8 +594,6 @@
                 
                 NSLog(@"Unable to create an inputNode object");
             }
-            
-            //self.task = [self.speechRecognizer recognitionTaskWithRequest:self.speechRequest delegate:self];
             
             self.task = [self.speechRecognizer recognitionTaskWithRequest:self.speechRequest resultHandler:^(SFSpeechRecognitionResult* result, NSError *error){
                 BOOL isFinal = false;
@@ -680,8 +607,6 @@
                     
                     isFinal = result.isFinal;
                     
-                    //[self.speechSynthesizer speakUtterance:[AVSpeechUtterance speechUtteranceWithString:result.bestTranscription.formattedString]];
-
                     [self positionTextView];
                 }
                 
@@ -698,11 +623,6 @@
                     self.speechRequest = nil;
                     self.task = nil;
                     
-                    //self.recordButton.enabled = true;
-                    //[self.recordButton setTitle:@"Stop Recording" forState:UIControlStateNormal];
-                    
-                    //This method will control auto listening at all times voer and over for continuous speech recognition
-                    //[self startRecognizer];
                 }
                 
             }];
@@ -723,17 +643,6 @@
             dispatch_async(dispatch_get_main_queue(), ^{
                 [self positionTextView];
             });
-            
-            
-            
-            //---------
-            // Shows a different audio tap method that shows sample buffers
-            // should call startCapture method in main queue or it may crash
-            //dispatch_async(dispatch_get_main_queue(), ^{
-            //    [self startCapture];
-            //});
-            //---------
-            
         }
     }];
 }
@@ -809,7 +718,6 @@
     dispatch_async(dispatch_get_main_queue(), ^{
         self.textView.text = translatedString;
         [self positionTextView];
-        //[self.speechSynthesizer speakUtterance:[AVSpeechUtterance speechUtteranceWithString:translatedString]];
     });
     
     if ([result isFinal]) {
@@ -853,14 +761,9 @@
     if (available)
     {
         NSLog(@"recognizer is available");
-        //self.recordButton.enabled = YES;
-        //[self.recordButton setTitle:@"Start Recording" forState:UIControlStateNormal];
-        
     }
     else{
         NSLog(@"recognizer is not available");
-        //self.recordButton.enabled = NO;
-        //[self.recordButton setTitle:@"Recognition not available" forState:UIControlStateDisabled];
     }
 }
 
@@ -878,11 +781,6 @@
 {
     NSLog(@"didFinishSpeechUtterance");
     self.isSpeaking = false;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        //NSLog(@"Listening....");
-        //[self startRecognizer];
-        //[self startCapture];
-    });
 }
 
 
@@ -908,10 +806,6 @@
 {
     NSLog(@"willSpeakRangeOfSpeechString");
     NSLog(@"Speaking!");
-    //self.isSpeaking = YES;
-    //[self endRecognizer];
-    //[self endCapture];
-    
 }
 
 
@@ -1839,20 +1733,16 @@
             //yaw:pitch:roll
             NSArray *pose = [lidarScan[0] componentsSeparatedByString:@":"];
             [lidarScan removeObjectAtIndex:0];
-            //weakSelf.rotationLabel.text = [NSString stringWithFormat:@"yaw:%@ pitch:%@ roll:%@", pose[0], pose[1], pose[2]];
             weakSelf.rotationLabel.text = [NSString stringWithFormat:@"yaw:%f pitch:%f roll:%f", self.yaw, self.pitch, self.roll];
 
             //laserPoint-distance:angle
             
             weakSelf.rpLidarPolarView.laserPoints = lidarScan;
             //TODO: we need to inject the map data into this polarView correctly and test the current location calculations...
-            //weakSelf.rpLidarPolarView.map = RPMap()
-            //weakSelf.rpLidarPolarView.currentLocation = RPLocation()
             
             [weakSelf.rpLidarPolarView setNeedsDisplay];
         });
     }
-    //NSLog(@"sender = %@", sender);
     if ([sender isEqualToString:@"rpLidar.map"]) {
         dispatch_async(dispatch_get_main_queue(), ^{
             NSData *map_data = [messageDictionary valueForKey:@"map.data"];
@@ -1861,7 +1751,6 @@
             
             int map_width = map_width_string.intValue;
             int map_height = map_height_string.intValue;
-            //NSLog(@"updating map with %lu length bytes", static_cast<unsigned long>(map_data.length));
             [self.rpLidarMapController updateMapWithData:map_data
                                                    width:map_width
                                                   height:map_height];

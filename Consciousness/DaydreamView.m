@@ -51,8 +51,6 @@
     CGContextStrokeEllipseInRect(context, CGRectMake(0, 0, self.frame.size.width/2.0, self.frame.size.height));
     CGContextStrokeEllipseInRect(context, CGRectMake(self.frame.size.width/2.0, 0, self.frame.size.width/2.0, self.frame.size.height));
     
-    //[self clampCurrentPoints];
-    
     if (self.currentPointL.x != -999)
     {
         CGRect borderRect = CGRectMake(self.currentPointL.x - 30.0, self.currentPointL.y - 30.0, 60.0, 60.0);
