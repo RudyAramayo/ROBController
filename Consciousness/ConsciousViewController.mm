@@ -57,6 +57,9 @@
 @property (nonatomic, strong) SFSpeechAudioBufferRecognitionRequest *speechRequest;
 @property (nonatomic, strong) SFSpeechRecognitionTask *task;
 @property (nonatomic, strong) AVAudioEngine *audioEngine;
+@property (nonatomic, strong) AVAudioInputNode *speechInputNode;
+@property (nonatomic, assign) BOOL speechInputTapInstalled;
+@property (nonatomic, assign) NSUInteger speechRecognitionGeneration;
 @property (nonatomic, strong) AVSpeechSynthesizer *speechSynthesizer;
 @property (nonatomic, assign) BOOL isSpeaking;
 @property (atomic, assign) BOOL safeToStartRecording;
@@ -145,6 +148,8 @@
                                                     detail:(NSString *)detail
                                                     result:(NSDictionary *)result;
 - (void)presentControllerNoticeWithTitle:(NSString *)title message:(NSString *)message;
+- (void)beginSpeechRecognitionForGeneration:(NSUInteger)generation;
+- (void)stopSpeechRecognition;
 
 @property (readwrite, assign) IBOutlet UIImageView *rpLidarMapView;
 @property (readwrite, retain) RPLidarMapController *rpLidarMapController;
@@ -479,13 +484,17 @@
 }
 
 - (IBAction)recordButtonTouchDown:(id)sender {
+    if (!self.safeToStartRecording) {
+        return;
+    }
     self.safeToStartRecording = false;
     [self setupSpeechRecognition];
-    NSLog(@"Recording has started...");
 }
 
 - (IBAction)recordButtonTouchUp:(id)sender {
-    [self.task cancel];
+    self.speechRecognitionGeneration += 1;
+    [self stopSpeechRecognition];
+    self.safeToStartRecording = true;
 }
 
 - (void)didReceiveMemoryWarning {
@@ -568,94 +577,191 @@
 - (void) setupSpeechRecognition
 {
     self.isSpeaking = NO;
-    
-    [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryRecord error:nil];
-    [[AVAudioSession sharedInstance] setMode:AVAudioSessionModeMeasurement error:nil];
-    [[AVAudioSession sharedInstance] setActive:YES error:nil];
-    
-    [self startRecognizer];
-    
+    self.speechRecognitionGeneration += 1;
+    [self stopSpeechRecognition];
+
+    NSError *sessionError = nil;
+    AVAudioSession *audioSession = [AVAudioSession sharedInstance];
+    if (![audioSession setCategory:AVAudioSessionCategoryRecord error:&sessionError]) {
+        NSLog(@"Unable to configure the speech audio session category: %@", sessionError.localizedDescription);
+        self.safeToStartRecording = true;
+        return;
+    }
+    if (![audioSession setMode:AVAudioSessionModeMeasurement error:&sessionError]) {
+        NSLog(@"Unable to configure the speech audio session mode: %@", sessionError.localizedDescription);
+        self.safeToStartRecording = true;
+        return;
+    }
+    if (![audioSession setActive:YES error:&sessionError]) {
+        NSLog(@"Unable to activate the speech audio session: %@", sessionError.localizedDescription);
+        self.safeToStartRecording = true;
+        return;
+    }
+
     self.audioEngine = [[AVAudioEngine alloc] init];
     self.speechSynthesizer  = [[AVSpeechSynthesizer alloc] init];
     [self.speechSynthesizer setDelegate:self];
-    
+    [self startRecognizer];
 }
 
 
 - (void)startRecognizer
 {
     NSString *locale = [self.localeArray[self.selectedLocaleIndex] valueForKey:@"locale_id"];
-    
+    NSUInteger generation = self.speechRecognitionGeneration;
+
     NSLog(@"starting speech recognizer with Locale - %@", locale);
     self.speechRecognizer = [[SFSpeechRecognizer alloc] initWithLocale:[NSLocale localeWithLocaleIdentifier:locale]];
     self.speechRecognizer.delegate = self;
-    
+    if (self.speechRecognizer == nil) {
+        NSLog(@"Unable to create a speech recognizer for Locale - %@", locale);
+        self.safeToStartRecording = true;
+        return;
+    }
+
+    __weak ConsciousViewController *weakSelf = self;
     [SFSpeechRecognizer requestAuthorization:^(SFSpeechRecognizerAuthorizationStatus status) {
-        if (status == SFSpeechRecognizerAuthorizationStatusAuthorized){
-            
-            self.speechRequest = [SFSpeechAudioBufferRecognitionRequest new];
-            
-            AVAudioInputNode *inputNode = [self.audioEngine inputNode];
-            
-            if (self.speechRequest == nil) {
-                NSLog(@"Unable to created a SFSpeechAudioBufferRecognitionRequest object");
+        dispatch_async(dispatch_get_main_queue(), ^{
+            ConsciousViewController *strongSelf = weakSelf;
+            if (strongSelf == nil || generation != strongSelf.speechRecognitionGeneration) {
+                return;
             }
-            
-            if (inputNode == nil) {
-                
-                NSLog(@"Unable to create an inputNode object");
+            if (status != SFSpeechRecognizerAuthorizationStatusAuthorized) {
+                NSLog(@"Speech recognition authorization was not granted (status %ld)", (long)status);
+                strongSelf.safeToStartRecording = true;
+                return;
             }
-            
-            self.task = [self.speechRecognizer recognitionTaskWithRequest:self.speechRequest resultHandler:^(SFSpeechRecognitionResult* result, NSError *error){
-                BOOL isFinal = false;
-                
-                if (result != nil)
-                {
-                    self.currentUserVerbalQueryString = result.bestTranscription.formattedString;
-                    dispatch_async(dispatch_get_main_queue(), ^(){
-                        self.textView.text = result.bestTranscription.formattedString;
-                    });
-                    
-                    isFinal = result.isFinal;
-                    
-                    [self positionTextView];
-                }
-                
-                if (error != nil || isFinal)
-                {
-                    if (!isFinal)
-                        NSLog(@"error = %@", error.localizedDescription);
-                    else
-                        NSLog(@"restarting speech recognition ");
-                    
-                    [self.audioEngine stop];
-                    [inputNode removeTapOnBus:0];
-                    
-                    self.speechRequest = nil;
-                    self.task = nil;
-                    
-                }
-                
-            }];
-            
-            [inputNode installTapOnBus:0 bufferSize:1024 format:[inputNode outputFormatForBus:0] block:^(AVAudioPCMBuffer *buffer, AVAudioTime *when){
-                [self.speechRequest appendAudioPCMBuffer:buffer];
-            }];
-            
-            
-            NSError *outError;
-            
-            [self.audioEngine prepare];
-            [self.audioEngine startAndReturnError:&outError];
-            
-            if (outError)
-                NSLog(@"Error %@", outError);
-            
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [self positionTextView];
-            });
-        }
+            [strongSelf beginSpeechRecognitionForGeneration:generation];
+        });
     }];
+}
+
+- (void)beginSpeechRecognitionForGeneration:(NSUInteger)generation
+{
+    if (generation != self.speechRecognitionGeneration) {
+        return;
+    }
+
+    AVAudioEngine *audioEngine = self.audioEngine;
+    if (audioEngine == nil) {
+        NSLog(@"Unable to start speech recognition without an audio engine");
+        self.safeToStartRecording = true;
+        return;
+    }
+
+    SFSpeechAudioBufferRecognitionRequest *speechRequest = [SFSpeechAudioBufferRecognitionRequest new];
+    if (speechRequest == nil) {
+        NSLog(@"Unable to create a speech audio buffer recognition request");
+        self.safeToStartRecording = true;
+        return;
+    }
+    speechRequest.shouldReportPartialResults = YES;
+    self.speechRequest = speechRequest;
+
+    @try {
+        AVAudioInputNode *inputNode = audioEngine.inputNode;
+        if (inputNode == nil) {
+            NSLog(@"Speech recognition is unavailable because no audio input node exists");
+            [self stopSpeechRecognition];
+            self.safeToStartRecording = true;
+            return;
+        }
+
+        AVAudioFormat *recordingFormat = [inputNode outputFormatForBus:0];
+        if (recordingFormat.sampleRate <= 0 || recordingFormat.channelCount == 0) {
+            NSLog(@"Speech recognition is unavailable because the audio input format is invalid: %@", recordingFormat);
+            [self stopSpeechRecognition];
+            self.safeToStartRecording = true;
+            return;
+        }
+
+        __weak ConsciousViewController *weakSelf = self;
+        self.task = [self.speechRecognizer recognitionTaskWithRequest:speechRequest resultHandler:^(SFSpeechRecognitionResult *result, NSError *error) {
+            BOOL isFinal = result.isFinal;
+            if (result != nil) {
+                NSString *transcription = result.bestTranscription.formattedString;
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    ConsciousViewController *strongSelf = weakSelf;
+                    if (strongSelf == nil || strongSelf.speechRequest != speechRequest) {
+                        return;
+                    }
+                    strongSelf.currentUserVerbalQueryString = transcription;
+                    strongSelf.textView.text = transcription;
+                    [strongSelf positionTextView];
+                });
+            }
+
+            if (error != nil || isFinal) {
+                if (error != nil) {
+                    NSLog(@"Speech recognition error: %@", error.localizedDescription);
+                }
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    ConsciousViewController *strongSelf = weakSelf;
+                    if (strongSelf != nil && strongSelf.speechRequest == speechRequest) {
+                        [strongSelf stopSpeechRecognition];
+                        strongSelf.safeToStartRecording = true;
+                    }
+                });
+            }
+        }];
+        if (self.task == nil) {
+            NSLog(@"Unable to create a speech recognition task");
+            [self stopSpeechRecognition];
+            self.safeToStartRecording = true;
+            return;
+        }
+
+        [inputNode installTapOnBus:0 bufferSize:1024 format:recordingFormat block:^(AVAudioPCMBuffer *buffer, AVAudioTime *when) {
+            [speechRequest appendAudioPCMBuffer:buffer];
+        }];
+        self.speechInputNode = inputNode;
+        self.speechInputTapInstalled = YES;
+
+        [audioEngine prepare];
+        NSError *startError = nil;
+        if (![audioEngine startAndReturnError:&startError]) {
+            NSLog(@"Unable to start the speech audio engine: %@", startError.localizedDescription);
+            [self stopSpeechRecognition];
+            self.safeToStartRecording = true;
+            return;
+        }
+
+        NSLog(@"Recording has started...");
+        [self positionTextView];
+    } @catch (NSException *exception) {
+        NSLog(@"Unable to start speech recognition audio: %@ (%@)", exception.reason, exception.name);
+        [self stopSpeechRecognition];
+        self.safeToStartRecording = true;
+    }
+}
+
+- (void)stopSpeechRecognition
+{
+    SFSpeechRecognitionTask *task = self.task;
+    SFSpeechAudioBufferRecognitionRequest *speechRequest = self.speechRequest;
+    AVAudioEngine *audioEngine = self.audioEngine;
+    AVAudioInputNode *inputNode = self.speechInputNode;
+    BOOL tapInstalled = self.speechInputTapInstalled;
+
+    self.task = nil;
+    self.speechRequest = nil;
+    self.speechInputNode = nil;
+    self.speechInputTapInstalled = NO;
+
+    [task cancel];
+    [speechRequest endAudio];
+    @try {
+        [audioEngine stop];
+    } @catch (NSException *exception) {
+        NSLog(@"Unable to stop the speech audio engine: %@ (%@)", exception.reason, exception.name);
+    }
+    if (tapInstalled && inputNode != nil) {
+        @try {
+            [inputNode removeTapOnBus:0];
+        } @catch (NSException *exception) {
+            NSLog(@"Unable to remove the speech audio tap: %@ (%@)", exception.reason, exception.name);
+        }
+    }
 }
 
 - (void)endRecognizer
@@ -732,10 +838,8 @@
     });
     
     if ([result isFinal]) {
-        [self.audioEngine stop];
-        [self.audioEngine.inputNode removeTapOnBus:0];
-        self.task = nil;
-        self.speechRequest = nil;
+        [self stopSpeechRecognition];
+        self.safeToStartRecording = true;
     }
 }
 
@@ -1584,6 +1688,9 @@
     // silently revoke or orphan that server-side session.
     [self setRobotActionsEnabled:NO
                           reason:@"Controller resigned active; AI actions reset to Off"];
+    self.speechRecognitionGeneration += 1;
+    [self stopSpeechRecognition];
+    self.safeToStartRecording = true;
 }
 
 - (BOOL)robotActionMessageIsAddressedToThisController:(ROBRobotActionMessage *)message
@@ -2065,6 +2172,7 @@
 
 - (void)dealloc
 {
+    [self stopSpeechRecognition];
     [self.robotActionExpiryTimer invalidate];
     [self.robotActionHelloTimer invalidate];
     [[NSNotificationCenter defaultCenter] removeObserver:self];
