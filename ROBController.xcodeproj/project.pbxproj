@@ -21,6 +21,7 @@
 		D49D756127FFE52800142E26 /* AutoNetDataTransferProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49D756027FFE52800142E26 /* AutoNetDataTransferProtocol.swift */; };
 		D4D049B82AC0BC820084EAFD /* Main_iPhone.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D4D049B62AC0BC820084EAFD /* Main_iPhone.storyboard */; };
 		D4D1592B28027EE000AFFA1E /* RPLidarPolarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D1592A28027EE000AFFA1E /* RPLidarPolarView.swift */; };
+		D4D1592D28027EE000AFFA1E /* RPLidarMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D1592C28027EE000AFFA1E /* RPLidarMapView.swift */; };
 		D4DD62E52E371CB200844D2B /* RPLidarMapController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4DD62E42E371CB200844D2B /* RPLidarMapController.swift */; };
 		D4F100022F00000100000001 /* ROBRobotActionProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4F100012F00000100000001 /* ROBRobotActionProtocol.swift */; };
 		EA6B40C820B0912500422C7C /* DaydreamView.m in Sources */ = {isa = PBXBuildFile; fileRef = EA6B40C720B0912400422C7C /* DaydreamView.m */; };
@@ -111,6 +112,7 @@
 		D49D756027FFE52800142E26 /* AutoNetDataTransferProtocol.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AutoNetDataTransferProtocol.swift; sourceTree = "<group>"; };
 		D4D049B72AC0BC820084EAFD /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main_iPhone.storyboard; sourceTree = "<group>"; };
 		D4D1592A28027EE000AFFA1E /* RPLidarPolarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RPLidarPolarView.swift; sourceTree = "<group>"; };
+		D4D1592C28027EE000AFFA1E /* RPLidarMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RPLidarMapView.swift; sourceTree = "<group>"; };
 		D4DD62E42E371CB200844D2B /* RPLidarMapController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RPLidarMapController.swift; sourceTree = "<group>"; };
 		D4F100012F00000100000001 /* ROBRobotActionProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ROBRobotActionProtocol.swift; sourceTree = "<group>"; };
 		EA6B40C620B0912400422C7C /* DaydreamView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DaydreamView.h; sourceTree = "<group>"; };
@@ -264,6 +266,7 @@
 				EA8727DA20A924C00015A7DF /* AppDelegate.h */,
 				EA8727DB20A924C00015A7DF /* AppDelegate.m */,
 				D4D1592A28027EE000AFFA1E /* RPLidarPolarView.swift */,
+				D4D1592C28027EE000AFFA1E /* RPLidarMapView.swift */,
 				EA8727DD20A924C00015A7DF /* ConsciousViewController.h */,
 				EA8727DE20A924C00015A7DF /* ConsciousViewController.mm */,
 				D4DD62E42E371CB200844D2B /* RPLidarMapController.swift */,
@@ -496,6 +499,7 @@
 				D4A710052F01000100000001 /* ROBWatchRelay.swift in Sources */,
 				EA6B40C820B0912500422C7C /* DaydreamView.m in Sources */,
 				D4D1592B28027EE000AFFA1E /* RPLidarPolarView.swift in Sources */,
+				D4D1592D28027EE000AFFA1E /* RPLidarMapView.swift in Sources */,
 				EA8727DC20A924C00015A7DF /* AppDelegate.m in Sources */,
 				D49D756127FFE52800142E26 /* AutoNetDataTransferProtocol.swift in Sources */,
 				D4F100022F00000100000001 /* ROBRobotActionProtocol.swift in Sources */,

@@ -13,6 +13,7 @@ import UIKit
 public class RPLidarMapController: NSObject {
     
     @objc var rpLidarMapView: UIImageView
+    @objc public var onMapImageUpdated: ((UIImage?) -> Void)?
         
     @objc public init(rpLidarMapView: UIImageView!) {
         self.rpLidarMapView = rpLidarMapView
@@ -23,6 +24,7 @@ public class RPLidarMapController: NSObject {
         let image = self.mask(from: dataBytes, dataWidth: width, dataHeight: height)
         DispatchQueue.main.async {
             self.rpLidarMapView.image = image
+            self.onMapImageUpdated?(image)
         }
     }
     
@@ -39,7 +41,7 @@ public class RPLidarMapController: NSObject {
         
         guard
             data.count >= width * height,
-            let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width, space: colorSpace, bitmapInfo: CGImageAlphaInfo.alphaOnly.rawValue),
+            let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width, space: colorSpace, bitmapInfo: CGImageAlphaInfo.none.rawValue),
             let buffer = context.data?.bindMemory(to: UInt8.self, capacity: width * height)
         else {
             return nil

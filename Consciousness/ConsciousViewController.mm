@@ -15,10 +15,11 @@
 #import <CoreML/CoreML.h>
 #import <Vision/Vision.h>
 #import <CoreMotion/CoreMotion.h>
+#import <MapKit/MapKit.h>
 #import <WatchConnectivity/WatchConnectivity.h>
 #import "ROBController-Swift.h"
 
-@interface ConsciousViewController () <AVCaptureAudioDataOutputSampleBufferDelegate, AVSpeechSynthesizerDelegate, SFSpeechRecognizerDelegate, SFSpeechRecognitionTaskDelegate, UITableViewDelegate, UITableViewDataSource, AutoNetClientDataDelegate, CLLocationManagerDelegate>
+@interface ConsciousViewController () <AVCaptureAudioDataOutputSampleBufferDelegate, AVSpeechSynthesizerDelegate, SFSpeechRecognizerDelegate, SFSpeechRecognitionTaskDelegate, UITableViewDelegate, UITableViewDataSource, AutoNetClientDataDelegate, CLLocationManagerDelegate, ROBOpenStreetMapViewDelegate>
 {
     AVCaptureSession *session;
     AVCaptureDevice *inputDevice;
@@ -78,6 +79,21 @@
 @property (readwrite, assign) float yaw;
 @property (readwrite, assign) float pitch;
 @property (readwrite, assign) float roll;
+
+@property (nonatomic, strong) UITabBarController *robotTabBarController;
+@property (nonatomic, strong) ROBOpenStreetMapView *openStreetMapView;
+@property (nonatomic, strong) UIView *persistentControlOverlay;
+@property (nonatomic, strong) UILabel *connectionStatusLabel;
+@property (nonatomic, strong) UIButton *microphoneButton;
+@property (nonatomic, strong) UIView *microphoneGlowView;
+@property (nonatomic, strong) UIVisualEffectView *microphoneBlurView;
+@property (nonatomic, strong) UIView *iPadCommandDeck;
+@property (nonatomic, strong) UIView *iPadNarrativePanel;
+@property (nonatomic, strong) UIView *iPadManualPanel;
+@property (nonatomic, strong) NSLayoutConstraint *iPadCommandMapHeightConstraint;
+@property (nonatomic, copy) NSArray<NSLayoutConstraint *> *iPadLandscapeCommandConstraints;
+@property (nonatomic, copy) NSArray<NSLayoutConstraint *> *iPadPortraitCommandConstraints;
+@property (nonatomic, assign) BOOL iPadCommandUsesLandscapeLayout;
 
 @property (readwrite, retain) NSMutableArray *localeArray;
 @property (readwrite, assign) int selectedLocaleIndex;
@@ -150,6 +166,9 @@
 - (void)presentControllerNoticeWithTitle:(NSString *)title message:(NSString *)message;
 - (void)beginSpeechRecognitionForGeneration:(NSUInteger)generation;
 - (void)stopSpeechRecognition;
+- (void)installTabbedInterface;
+- (void)setMicrophoneActiveAppearance:(BOOL)active;
+- (void)updateIPadCommandLayoutForSize:(CGSize)size;
 
 @property (readwrite, assign) IBOutlet UIImageView *rpLidarMapView;
 @property (readwrite, retain) RPLidarMapController *rpLidarMapController;
@@ -158,9 +177,1003 @@
 
 @implementation ConsciousViewController
 
+- (BOOL)usesIPadCommandConsole
+{
+    return UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad;
+}
+
+- (UIColor *)consoleBackgroundColor
+{
+    return [UIColor colorWithRed:0.020 green:0.027 blue:0.031 alpha:1.0];
+}
+
+- (UIColor *)consoleSurfaceColor
+{
+    return [UIColor colorWithRed:0.043 green:0.055 blue:0.063 alpha:1.0];
+}
+
+- (UIColor *)consoleAmberColor
+{
+    return [UIColor colorWithRed:0.94 green:0.66 blue:0.25 alpha:1.0];
+}
+
+- (void)styleConsolePanel:(UIView *)panel
+{
+    panel.backgroundColor = [self consoleSurfaceColor];
+    panel.layer.cornerRadius = 3.0;
+    panel.layer.borderWidth = 1.0;
+    panel.layer.borderColor = [[self consoleAmberColor] colorWithAlphaComponent:0.28].CGColor;
+}
+
+- (UILabel *)consoleCaptionWithText:(NSString *)text
+{
+    UILabel *label = [UILabel new];
+    label.text = text.uppercaseString;
+    label.font = [UIFont monospacedSystemFontOfSize:11 weight:UIFontWeightSemibold];
+    label.textColor = [self consoleAmberColor];
+    label.numberOfLines = 1;
+    label.adjustsFontSizeToFitWidth = YES;
+    label.minimumScaleFactor = 0.72;
+    return label;
+}
+
+- (UILabel *)sectionLabelWithText:(NSString *)text
+{
+    UILabel *label = [UILabel new];
+    label.text = text;
+    if ([self usesIPadCommandConsole]) {
+        label.font = [UIFont monospacedSystemFontOfSize:13 weight:UIFontWeightSemibold];
+        label.textColor = [self consoleAmberColor];
+        label.text = text.uppercaseString;
+    } else {
+        label.font = [UIFont preferredFontForTextStyle:UIFontTextStyleHeadline];
+        label.textColor = UIColor.labelColor;
+    }
+    label.numberOfLines = 0;
+    return label;
+}
+
+- (UIButton *)controlButtonWithTitle:(NSString *)title
+                             selector:(SEL)selector
+                               events:(UIControlEvents)events
+{
+    UIButton *button = [UIButton buttonWithType:UIButtonTypeSystem];
+    button.translatesAutoresizingMaskIntoConstraints = NO;
+    [button setTitle:title forState:UIControlStateNormal];
+    button.titleLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
+    button.titleLabel.adjustsFontSizeToFitWidth = YES;
+    button.titleLabel.minimumScaleFactor = 0.72;
+    if ([self usesIPadCommandConsole]) {
+        button.titleLabel.font = [UIFont monospacedSystemFontOfSize:12 weight:UIFontWeightSemibold];
+        button.backgroundColor = [[self consoleAmberColor] colorWithAlphaComponent:0.09];
+        button.tintColor = [self consoleAmberColor];
+        [button setTitleColor:[self consoleAmberColor] forState:UIControlStateNormal];
+        button.layer.cornerRadius = 3.0;
+        button.layer.borderWidth = 1.0;
+        button.layer.borderColor = [[self consoleAmberColor] colorWithAlphaComponent:0.36].CGColor;
+    } else {
+        button.backgroundColor = UIColor.tertiarySystemFillColor;
+        button.layer.cornerRadius = 10.0;
+    }
+    [button addTarget:self action:selector forControlEvents:events];
+    [button.heightAnchor constraintGreaterThanOrEqualToConstant:44].active = YES;
+    return button;
+}
+
+- (UIStackView *)equalRowWithViews:(NSArray<UIView *> *)views
+{
+    UIStackView *row = [[UIStackView alloc] initWithArrangedSubviews:views];
+    row.axis = UILayoutConstraintAxisHorizontal;
+    row.alignment = UIStackViewAlignmentFill;
+    row.distribution = UIStackViewDistributionFillEqually;
+    row.spacing = 8;
+    return row;
+}
+
+- (UIViewController *)tabControllerWithTitle:(NSString *)title systemImage:(NSString *)systemImage
+{
+    UIViewController *controller = [UIViewController new];
+    controller.title = title;
+    controller.view.backgroundColor = [self usesIPadCommandConsole] ? [self consoleBackgroundColor] : UIColor.systemBackgroundColor;
+    controller.tabBarItem = [[UITabBarItem alloc] initWithTitle:title
+                                                          image:[UIImage systemImageNamed:systemImage]
+                                                            tag:0];
+    return controller;
+}
+
+- (UIStackView *)scrollingStackInController:(UIViewController *)controller
+{
+    UIScrollView *scrollView = [UIScrollView new];
+    scrollView.translatesAutoresizingMaskIntoConstraints = NO;
+    scrollView.alwaysBounceVertical = YES;
+    scrollView.keyboardDismissMode = UIScrollViewKeyboardDismissModeOnDrag;
+    [controller.view addSubview:scrollView];
+
+    UIStackView *stack = [UIStackView new];
+    stack.translatesAutoresizingMaskIntoConstraints = NO;
+    stack.axis = UILayoutConstraintAxisVertical;
+    stack.alignment = UIStackViewAlignmentFill;
+    stack.spacing = 12;
+    stack.layoutMargins = UIEdgeInsetsMake(14, 16, 22, 16);
+    stack.layoutMarginsRelativeArrangement = YES;
+    [scrollView addSubview:stack];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [scrollView.leadingAnchor constraintEqualToAnchor:controller.view.leadingAnchor],
+        [scrollView.trailingAnchor constraintEqualToAnchor:controller.view.trailingAnchor],
+        [scrollView.topAnchor constraintEqualToAnchor:controller.view.topAnchor],
+        [scrollView.bottomAnchor constraintEqualToAnchor:controller.view.bottomAnchor],
+        [stack.leadingAnchor constraintEqualToAnchor:scrollView.contentLayoutGuide.leadingAnchor],
+        [stack.trailingAnchor constraintEqualToAnchor:scrollView.contentLayoutGuide.trailingAnchor],
+        [stack.topAnchor constraintEqualToAnchor:scrollView.contentLayoutGuide.topAnchor],
+        [stack.bottomAnchor constraintEqualToAnchor:scrollView.contentLayoutGuide.bottomAnchor],
+        [stack.widthAnchor constraintEqualToAnchor:scrollView.frameLayoutGuide.widthAnchor]
+    ]];
+    return stack;
+}
+
+- (UIViewController *)buildMapTab
+{
+    UIViewController *controller = [self tabControllerWithTitle:@"Map" systemImage:@"map.fill"];
+    self.openStreetMapView = [ROBOpenStreetMapView new];
+    self.openStreetMapView.translatesAutoresizingMaskIntoConstraints = NO;
+    self.openStreetMapView.mapDelegate = self;
+    [controller.view addSubview:self.openStreetMapView];
+
+    // RPLidarMapController keeps its legacy UIImageView sink while also
+    // forwarding each decoded occupancy image into the geographic map overlay.
+    UIImageView *mapImageSink = [UIImageView new];
+    mapImageSink.hidden = YES;
+    [controller.view addSubview:mapImageSink];
+    self.rpLidarMapView = mapImageSink;
+    self.rpLidarPolarView = [RPLidarPolarView new];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [self.openStreetMapView.leadingAnchor constraintEqualToAnchor:controller.view.leadingAnchor],
+        [self.openStreetMapView.trailingAnchor constraintEqualToAnchor:controller.view.trailingAnchor],
+        [self.openStreetMapView.topAnchor constraintEqualToAnchor:controller.view.topAnchor],
+        [self.openStreetMapView.bottomAnchor constraintEqualToAnchor:controller.view.bottomAnchor]
+    ]];
+    return controller;
+}
+
+- (UIButton *)momentaryButtonWithTitle:(NSString *)title
+                                  down:(SEL)downSelector
+                                    up:(SEL)upSelector
+{
+    UIButton *button = [self controlButtonWithTitle:title
+                                           selector:downSelector
+                                             events:UIControlEventTouchDown];
+    [button addTarget:self
+               action:upSelector
+     forControlEvents:(UIControlEventTouchUpInside |
+                       UIControlEventTouchUpOutside |
+                       UIControlEventTouchCancel)];
+    return button;
+}
+
+- (UIViewController *)buildControlsTab
+{
+    UIViewController *controller = [self tabControllerWithTitle:@"Controls" systemImage:@"gamecontroller.fill"];
+    UIStackView *stack = [self scrollingStackInController:controller];
+    [stack addArrangedSubview:[self sectionLabelWithText:@"Tread control"]];
+
+    UILabel *driveHint = [UILabel new];
+    driveHint.text = @"Landscape: independent dual joysticks  •  Portrait: one-hand speed + turn";
+    driveHint.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
+    driveHint.textColor = UIColor.secondaryLabelColor;
+    driveHint.textAlignment = NSTextAlignmentCenter;
+    driveHint.numberOfLines = 0;
+    [stack addArrangedSubview:driveHint];
+
+    DaydreamView *joystick = [DaydreamView new];
+    joystick.translatesAutoresizingMaskIntoConstraints = NO;
+    joystick.layer.cornerRadius = 16;
+    joystick.layer.borderWidth = 1;
+    joystick.layer.borderColor = UIColor.separatorColor.CGColor;
+    joystick.backgroundColor = UIColor.secondarySystemBackgroundColor;
+    [joystick.heightAnchor constraintEqualToConstant:280].active = YES;
+    self.daydreamView = joystick;
+    [stack addArrangedSubview:joystick];
+
+    [stack addArrangedSubview:[self sectionLabelWithText:@"Drive speed and direction"]];
+    UISlider *speedSlider = [UISlider new];
+    speedSlider.minimumValue = 0;
+    speedSlider.maximumValue = 100;
+    speedSlider.value = self.speed;
+    [speedSlider addTarget:self action:@selector(speed_slider_action:) forControlEvents:UIControlEventValueChanged];
+    self.speedSlider = speedSlider;
+
+    UIButton *minus = [self controlButtonWithTitle:@"−" selector:@selector(speed_reduce:) events:UIControlEventTouchUpInside];
+    UIButton *plus = [self controlButtonWithTitle:@"+" selector:@selector(speed_increase:) events:UIControlEventTouchUpInside];
+    UIStackView *speedRow = [[UIStackView alloc] initWithArrangedSubviews:@[minus, speedSlider, plus]];
+    speedRow.axis = UILayoutConstraintAxisHorizontal;
+    speedRow.alignment = UIStackViewAlignmentCenter;
+    speedRow.spacing = 10;
+    [minus.widthAnchor constraintEqualToConstant:52].active = YES;
+    [plus.widthAnchor constraintEqualToConstant:52].active = YES;
+    [stack addArrangedSubview:speedRow];
+
+    [stack addArrangedSubview:[self equalRowWithViews:@[
+        [self controlButtonWithTitle:@"Forward" selector:@selector(speed_FORWARD_toggle:) events:UIControlEventTouchUpInside],
+        [self controlButtonWithTitle:@"Reverse" selector:@selector(speed_REVERSE_toggle:) events:UIControlEventTouchUpInside],
+        [self controlButtonWithTitle:@"Run / Stop" selector:@selector(speed_playpause_action:) events:UIControlEventTouchUpInside],
+        [self controlButtonWithTitle:@"Tread Brake" selector:@selector(tred_brakelock:) events:UIControlEventTouchUpInside]
+    ]]];
+
+    [stack addArrangedSubview:[self sectionLabelWithText:@"Manual movement"]];
+    [stack addArrangedSubview:[self equalRowWithViews:@[
+        [self momentaryButtonWithTitle:@"Flipper Forward" down:@selector(flipper_FORWARD_touchdown:) up:@selector(flipper_FORWARD_touchup:)],
+        [self momentaryButtonWithTitle:@"Flipper Relax" down:@selector(flipper_RELAX_touchdown:) up:@selector(flipper_RELAX_touchup:)],
+        [self momentaryButtonWithTitle:@"Flipper Back" down:@selector(flipper_BACKWARD_touchdown:) up:@selector(flipper_BACKWARD_touchup:)],
+        [self controlButtonWithTitle:@"Flipper Brake" selector:@selector(flipper_brakelock:) events:UIControlEventTouchUpInside]
+    ]]];
+    [stack addArrangedSubview:[self equalRowWithViews:@[
+        [self momentaryButtonWithTitle:@"Lift Front" down:@selector(lact_FRONT_touchdown:) up:@selector(lact_FRONT_touchup:)],
+        [self controlButtonWithTitle:@"Lift Gravity" selector:@selector(lact_GRAVITY_toggle:) events:UIControlEventTouchUpInside],
+        [self momentaryButtonWithTitle:@"Lift Back" down:@selector(lact_BACK_touchdown:) up:@selector(lact_BACK_touchup:)],
+        [self controlButtonWithTitle:@"10% Speed" selector:@selector(speed_10Percent:) events:UIControlEventTouchUpInside]
+    ]]];
+    self.commandSheetStackView = stack;
+    return controller;
+}
+
+- (UIView *)buildMicrophonePanel
+{
+    UIView *panel = [UIView new];
+    panel.translatesAutoresizingMaskIntoConstraints = NO;
+    panel.backgroundColor = UIColor.secondarySystemBackgroundColor;
+    panel.layer.cornerRadius = 18;
+    [panel.heightAnchor constraintEqualToConstant:190].active = YES;
+
+    UIView *glow = [UIView new];
+    glow.translatesAutoresizingMaskIntoConstraints = NO;
+    glow.backgroundColor = [UIColor.systemRedColor colorWithAlphaComponent:0.78];
+    glow.layer.cornerRadius = 76;
+    glow.layer.shadowColor = UIColor.systemRedColor.CGColor;
+    glow.layer.shadowOffset = CGSizeZero;
+    glow.layer.shadowRadius = 30;
+    glow.layer.shadowOpacity = 0.95;
+    glow.alpha = 0.16;
+    [panel addSubview:glow];
+    self.microphoneGlowView = glow;
+
+    UIVisualEffectView *blur = [[UIVisualEffectView alloc] initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark]];
+    blur.translatesAutoresizingMaskIntoConstraints = NO;
+    blur.userInteractionEnabled = NO;
+    blur.layer.cornerRadius = 70;
+    blur.layer.masksToBounds = YES;
+    blur.backgroundColor = [UIColor.systemRedColor colorWithAlphaComponent:0.16];
+    blur.alpha = 0.12;
+    [panel addSubview:blur];
+    self.microphoneBlurView = blur;
+
+    UIButton *microphone = [UIButton buttonWithType:UIButtonTypeSystem];
+    microphone.translatesAutoresizingMaskIntoConstraints = NO;
+    microphone.accessibilityLabel = @"Hold to speak";
+    microphone.backgroundColor = UIColor.systemGray5Color;
+    microphone.tintColor = UIColor.labelColor;
+    microphone.layer.cornerRadius = 58;
+    microphone.layer.borderWidth = 2;
+    microphone.layer.borderColor = UIColor.systemRedColor.CGColor;
+    UIImageSymbolConfiguration *symbolConfig = [UIImageSymbolConfiguration configurationWithPointSize:52 weight:UIImageSymbolWeightSemibold];
+    [microphone setImage:[UIImage systemImageNamed:@"mic.fill" withConfiguration:symbolConfig]
+                forState:UIControlStateNormal];
+    [microphone addTarget:self action:@selector(microphoneTouchDown:) forControlEvents:UIControlEventTouchDown];
+    [microphone addTarget:self
+                   action:@selector(microphoneTouchReleased:)
+         forControlEvents:(UIControlEventTouchUpInside | UIControlEventTouchUpOutside | UIControlEventTouchCancel)];
+    [panel addSubview:microphone];
+    self.microphoneButton = microphone;
+
+    UILabel *hint = [UILabel new];
+    hint.translatesAutoresizingMaskIntoConstraints = NO;
+    hint.text = @"Hold to speak with ROB's AI";
+    hint.textAlignment = NSTextAlignmentCenter;
+    hint.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
+    hint.textColor = UIColor.secondaryLabelColor;
+    [panel addSubview:hint];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [glow.widthAnchor constraintEqualToConstant:152],
+        [glow.heightAnchor constraintEqualToConstant:152],
+        [glow.centerXAnchor constraintEqualToAnchor:panel.centerXAnchor],
+        [glow.centerYAnchor constraintEqualToAnchor:panel.centerYAnchor constant:-8],
+        [blur.widthAnchor constraintEqualToConstant:140],
+        [blur.heightAnchor constraintEqualToConstant:140],
+        [blur.centerXAnchor constraintEqualToAnchor:glow.centerXAnchor],
+        [blur.centerYAnchor constraintEqualToAnchor:glow.centerYAnchor],
+        [microphone.widthAnchor constraintEqualToConstant:116],
+        [microphone.heightAnchor constraintEqualToConstant:116],
+        [microphone.centerXAnchor constraintEqualToAnchor:glow.centerXAnchor],
+        [microphone.centerYAnchor constraintEqualToAnchor:glow.centerYAnchor],
+        [hint.centerXAnchor constraintEqualToAnchor:panel.centerXAnchor],
+        [hint.bottomAnchor constraintEqualToAnchor:panel.bottomAnchor constant:-8]
+    ]];
+    return panel;
+}
+
+- (UIView *)buildRobotActionPanel
+{
+    UIView *panel = [UIView new];
+    panel.translatesAutoresizingMaskIntoConstraints = NO;
+    panel.backgroundColor = UIColor.secondarySystemBackgroundColor;
+    panel.layer.cornerRadius = 14;
+    panel.layoutMargins = UIEdgeInsetsMake(12, 12, 12, 12);
+
+    UIStackView *stack = [UIStackView new];
+    stack.translatesAutoresizingMaskIntoConstraints = NO;
+    stack.axis = UILayoutConstraintAxisVertical;
+    stack.spacing = 8;
+    [panel addSubview:stack];
+    [NSLayoutConstraint activateConstraints:@[
+        [stack.leadingAnchor constraintEqualToAnchor:panel.layoutMarginsGuide.leadingAnchor],
+        [stack.trailingAnchor constraintEqualToAnchor:panel.layoutMarginsGuide.trailingAnchor],
+        [stack.topAnchor constraintEqualToAnchor:panel.layoutMarginsGuide.topAnchor],
+        [stack.bottomAnchor constraintEqualToAnchor:panel.layoutMarginsGuide.bottomAnchor]
+    ]];
+
+    UILabel *safety = [UILabel new];
+    safety.text = @"PER-ACTION APPROVAL DOES NOT DIRECTLY ACTUATE HARDWARE";
+    safety.font = [UIFont preferredFontForTextStyle:UIFontTextStyleCaption1];
+    safety.textColor = UIColor.systemOrangeColor;
+    safety.textAlignment = NSTextAlignmentCenter;
+    safety.numberOfLines = 0;
+    self.robotActionSafetyLabel = safety;
+    [stack addArrangedSubview:safety];
+
+    UILabel *title = [self sectionLabelWithText:@"Robot action: No pending request"];
+    title.textAlignment = NSTextAlignmentCenter;
+    self.robotActionTitleLabel = title;
+    [stack addArrangedSubview:title];
+
+    UILabel *detail = [UILabel new];
+    detail.text = @"Incoming AI actions require an explicit operator decision.";
+    detail.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
+    detail.textColor = UIColor.secondaryLabelColor;
+    detail.textAlignment = NSTextAlignmentCenter;
+    detail.numberOfLines = 0;
+    self.robotActionDetailLabel = detail;
+    [stack addArrangedSubview:detail];
+
+    UIButton *enabled = [self controlButtonWithTitle:@"AI Actions: OFF" selector:@selector(toggleRobotActionsEnabled:) events:UIControlEventTouchUpInside];
+    self.robotActionsEnabledButton = enabled;
+    [stack addArrangedSubview:enabled];
+
+    UIButton *approve = [self controlButtonWithTitle:@"Approve" selector:@selector(approveRobotAction:) events:UIControlEventTouchUpInside];
+    UIButton *reject = [self controlButtonWithTitle:@"Reject" selector:@selector(rejectRobotAction:) events:UIControlEventTouchUpInside];
+    UIButton *complete = [self controlButtonWithTitle:@"Complete" selector:@selector(completeRobotAction:) events:UIControlEventTouchUpInside];
+    UIButton *failed = [self controlButtonWithTitle:@"Failed" selector:@selector(failRobotAction:) events:UIControlEventTouchUpInside];
+    UIButton *cancel = [self controlButtonWithTitle:@"Cancel" selector:@selector(cancelRobotAction:) events:UIControlEventTouchUpInside];
+    self.robotActionApproveButton = approve;
+    self.robotActionRejectButton = reject;
+    self.robotActionCompleteButton = complete;
+    self.robotActionFailedButton = failed;
+    self.robotActionCancelButton = cancel;
+    [stack addArrangedSubview:[self equalRowWithViews:@[approve, reject, cancel]]];
+    [stack addArrangedSubview:[self equalRowWithViews:@[complete, failed]]];
+    self.robotActionPanel = panel;
+    return panel;
+}
+
+- (UIViewController *)buildAutoTab
+{
+    UIViewController *controller = [self tabControllerWithTitle:@"Auto" systemImage:@"brain.head.profile"];
+    UIStackView *stack = [self scrollingStackInController:controller];
+    UILabel *title = [self sectionLabelWithText:@"AI interaction"];
+    title.textAlignment = NSTextAlignmentCenter;
+    [stack addArrangedSubview:title];
+    [stack addArrangedSubview:[self buildMicrophonePanel]];
+
+    UITextView *transcript = [UITextView new];
+    transcript.translatesAutoresizingMaskIntoConstraints = NO;
+    transcript.editable = NO;
+    transcript.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
+    transcript.textColor = UIColor.labelColor;
+    transcript.backgroundColor = UIColor.secondarySystemBackgroundColor;
+    transcript.layer.cornerRadius = 12;
+    transcript.textAlignment = NSTextAlignmentCenter;
+    transcript.text = @"Speech transcript";
+    [transcript.heightAnchor constraintEqualToConstant:72].active = YES;
+    self.textView = transcript;
+    [stack addArrangedSubview:transcript];
+
+    UIButton *shutUp = [self controlButtonWithTitle:@"Stop ROB Speaking" selector:@selector(shutUpDroid) events:UIControlEventTouchUpInside];
+    [stack addArrangedSubview:shutUp];
+
+    [stack addArrangedSubview:[self sectionLabelWithText:@"Autonomy"]];
+    UILabel *autonomyStatus = [UILabel new];
+    autonomyStatus.numberOfLines = 0;
+    autonomyStatus.textAlignment = NSTextAlignmentCenter;
+    autonomyStatus.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
+    autonomyStatus.textColor = UIColor.secondaryLabelColor;
+    self.autonomyStatusLabel = autonomyStatus;
+    [stack addArrangedSubview:autonomyStatus];
+    UIButton *autonomyButton = [self controlButtonWithTitle:@"Start Autonomy…" selector:@selector(toggleAutonomySession:) events:UIControlEventTouchUpInside];
+    self.autonomyModeButton = autonomyButton;
+    [stack addArrangedSubview:autonomyButton];
+    [stack addArrangedSubview:[self buildRobotActionPanel]];
+    return controller;
+}
+
+- (UIView *)buildIPadMicrophoneModule
+{
+    UIView *module = [UIView new];
+    module.translatesAutoresizingMaskIntoConstraints = NO;
+    [self styleConsolePanel:module];
+
+    UILabel *caption = [self consoleCaptionWithText:@"Voice link"];
+    caption.translatesAutoresizingMaskIntoConstraints = NO;
+    caption.textAlignment = NSTextAlignmentCenter;
+    [module addSubview:caption];
+
+    UIView *glow = [UIView new];
+    glow.translatesAutoresizingMaskIntoConstraints = NO;
+    glow.backgroundColor = [UIColor.systemRedColor colorWithAlphaComponent:0.76];
+    glow.layer.cornerRadius = 50;
+    glow.layer.shadowColor = UIColor.systemRedColor.CGColor;
+    glow.layer.shadowOffset = CGSizeZero;
+    glow.layer.shadowRadius = 26;
+    glow.layer.shadowOpacity = 0.92;
+    glow.alpha = 0.14;
+    [module addSubview:glow];
+    self.microphoneGlowView = glow;
+
+    UIVisualEffectView *blur = [[UIVisualEffectView alloc] initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark]];
+    blur.translatesAutoresizingMaskIntoConstraints = NO;
+    blur.userInteractionEnabled = NO;
+    blur.layer.cornerRadius = 45;
+    blur.layer.masksToBounds = YES;
+    blur.alpha = 0.10;
+    [module addSubview:blur];
+    self.microphoneBlurView = blur;
+
+    UIButton *microphone = [UIButton buttonWithType:UIButtonTypeSystem];
+    microphone.translatesAutoresizingMaskIntoConstraints = NO;
+    microphone.accessibilityLabel = @"Hold to speak with ROB";
+    microphone.backgroundColor = [self consoleBackgroundColor];
+    microphone.tintColor = UIColor.whiteColor;
+    microphone.layer.cornerRadius = 36;
+    microphone.layer.borderWidth = 1.5;
+    microphone.layer.borderColor = UIColor.systemRedColor.CGColor;
+    UIImageSymbolConfiguration *symbolConfig = [UIImageSymbolConfiguration configurationWithPointSize:31 weight:UIImageSymbolWeightMedium];
+    [microphone setImage:[UIImage systemImageNamed:@"mic.fill" withConfiguration:symbolConfig]
+                forState:UIControlStateNormal];
+    [microphone addTarget:self action:@selector(microphoneTouchDown:) forControlEvents:UIControlEventTouchDown];
+    [microphone addTarget:self
+                   action:@selector(microphoneTouchReleased:)
+         forControlEvents:(UIControlEventTouchUpInside | UIControlEventTouchUpOutside | UIControlEventTouchCancel)];
+    [module addSubview:microphone];
+    self.microphoneButton = microphone;
+
+    UILabel *hint = [self consoleCaptionWithText:@"Hold / transmit"];
+    hint.translatesAutoresizingMaskIntoConstraints = NO;
+    hint.textAlignment = NSTextAlignmentCenter;
+    hint.textColor = [UIColor.whiteColor colorWithAlphaComponent:0.62];
+    [module addSubview:hint];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [caption.leadingAnchor constraintEqualToAnchor:module.leadingAnchor constant:6],
+        [caption.trailingAnchor constraintEqualToAnchor:module.trailingAnchor constant:-6],
+        [caption.topAnchor constraintEqualToAnchor:module.topAnchor constant:7],
+        [glow.widthAnchor constraintEqualToConstant:100],
+        [glow.heightAnchor constraintEqualToConstant:100],
+        [glow.centerXAnchor constraintEqualToAnchor:module.centerXAnchor],
+        [glow.centerYAnchor constraintEqualToAnchor:module.centerYAnchor constant:2],
+        [blur.widthAnchor constraintEqualToConstant:90],
+        [blur.heightAnchor constraintEqualToConstant:90],
+        [blur.centerXAnchor constraintEqualToAnchor:glow.centerXAnchor],
+        [blur.centerYAnchor constraintEqualToAnchor:glow.centerYAnchor],
+        [microphone.widthAnchor constraintEqualToConstant:72],
+        [microphone.heightAnchor constraintEqualToConstant:72],
+        [microphone.centerXAnchor constraintEqualToAnchor:glow.centerXAnchor],
+        [microphone.centerYAnchor constraintEqualToAnchor:glow.centerYAnchor],
+        [hint.leadingAnchor constraintEqualToAnchor:module.leadingAnchor constant:6],
+        [hint.trailingAnchor constraintEqualToAnchor:module.trailingAnchor constant:-6],
+        [hint.bottomAnchor constraintEqualToAnchor:module.bottomAnchor constant:-7]
+    ]];
+    return module;
+}
+
+- (UIView *)buildIPadNarrativeChannel
+{
+    UIView *panel = [UIView new];
+    panel.translatesAutoresizingMaskIntoConstraints = NO;
+    [self styleConsolePanel:panel];
+
+    UIStackView *row = [UIStackView new];
+    row.translatesAutoresizingMaskIntoConstraints = NO;
+    row.axis = UILayoutConstraintAxisHorizontal;
+    row.alignment = UIStackViewAlignmentFill;
+    row.spacing = 8;
+    row.layoutMargins = UIEdgeInsetsMake(7, 7, 7, 7);
+    row.layoutMarginsRelativeArrangement = YES;
+    [panel addSubview:row];
+    [NSLayoutConstraint activateConstraints:@[
+        [row.leadingAnchor constraintEqualToAnchor:panel.leadingAnchor],
+        [row.trailingAnchor constraintEqualToAnchor:panel.trailingAnchor],
+        [row.topAnchor constraintEqualToAnchor:panel.topAnchor],
+        [row.bottomAnchor constraintEqualToAnchor:panel.bottomAnchor]
+    ]];
+
+    UIView *microphoneModule = [self buildIPadMicrophoneModule];
+    [microphoneModule.widthAnchor constraintEqualToConstant:128].active = YES;
+    [row addArrangedSubview:microphoneModule];
+
+    UIStackView *conversation = [UIStackView new];
+    conversation.axis = UILayoutConstraintAxisVertical;
+    conversation.spacing = 4;
+    [conversation.widthAnchor constraintGreaterThanOrEqualToConstant:210].active = YES;
+    [row addArrangedSubview:conversation];
+
+    [conversation addArrangedSubview:[self consoleCaptionWithText:@"Narrative channel / ROB"]];
+    UITextView *transcript = [UITextView new];
+    transcript.translatesAutoresizingMaskIntoConstraints = NO;
+    transcript.editable = NO;
+    transcript.scrollEnabled = YES;
+    transcript.font = [UIFont monospacedSystemFontOfSize:12 weight:UIFontWeightRegular];
+    transcript.textColor = [UIColor.whiteColor colorWithAlphaComponent:0.88];
+    transcript.backgroundColor = [self consoleBackgroundColor];
+    transcript.layer.cornerRadius = 2;
+    transcript.text = @"Speech transcript / narrative response";
+    [transcript.heightAnchor constraintGreaterThanOrEqualToConstant:34].active = YES;
+    self.textView = transcript;
+    [conversation addArrangedSubview:transcript];
+
+    UILabel *autonomyStatus = [UILabel new];
+    autonomyStatus.numberOfLines = 2;
+    autonomyStatus.font = [UIFont monospacedSystemFontOfSize:10 weight:UIFontWeightRegular];
+    autonomyStatus.textColor = [UIColor.whiteColor colorWithAlphaComponent:0.58];
+    self.autonomyStatusLabel = autonomyStatus;
+    [conversation addArrangedSubview:autonomyStatus];
+
+    UIButton *shutUp = [self controlButtonWithTitle:@"Silence ROB" selector:@selector(shutUpDroid) events:UIControlEventTouchUpInside];
+    UIButton *autonomyButton = [self controlButtonWithTitle:@"Begin Autonomy…" selector:@selector(toggleAutonomySession:) events:UIControlEventTouchUpInside];
+    self.autonomyModeButton = autonomyButton;
+    [conversation addArrangedSubview:[self equalRowWithViews:@[shutUp, autonomyButton]]];
+
+    UIView *actionPanel = [UIView new];
+    actionPanel.translatesAutoresizingMaskIntoConstraints = NO;
+    [self styleConsolePanel:actionPanel];
+    [actionPanel.widthAnchor constraintGreaterThanOrEqualToConstant:360].active = YES;
+    [row addArrangedSubview:actionPanel];
+
+    UIStackView *actions = [UIStackView new];
+    actions.translatesAutoresizingMaskIntoConstraints = NO;
+    actions.axis = UILayoutConstraintAxisVertical;
+    actions.spacing = 4;
+    actions.layoutMargins = UIEdgeInsetsMake(6, 7, 6, 7);
+    actions.layoutMarginsRelativeArrangement = YES;
+    [actionPanel addSubview:actions];
+    [NSLayoutConstraint activateConstraints:@[
+        [actions.leadingAnchor constraintEqualToAnchor:actionPanel.leadingAnchor],
+        [actions.trailingAnchor constraintEqualToAnchor:actionPanel.trailingAnchor],
+        [actions.topAnchor constraintEqualToAnchor:actionPanel.topAnchor],
+        [actions.bottomAnchor constraintEqualToAnchor:actionPanel.bottomAnchor]
+    ]];
+
+    UILabel *safety = [self consoleCaptionWithText:@"AI action gate / operator authorization required"];
+    safety.textColor = UIColor.systemOrangeColor;
+    self.robotActionSafetyLabel = safety;
+    [actions addArrangedSubview:safety];
+
+    UILabel *actionTitle = [UILabel new];
+    actionTitle.text = @"NO PENDING ACTION";
+    actionTitle.font = [UIFont monospacedSystemFontOfSize:13 weight:UIFontWeightSemibold];
+    actionTitle.textColor = UIColor.whiteColor;
+    actionTitle.numberOfLines = 1;
+    self.robotActionTitleLabel = actionTitle;
+    [actions addArrangedSubview:actionTitle];
+
+    UILabel *detail = [UILabel new];
+    detail.text = @"Incoming narrative actions remain inert until explicitly approved.";
+    detail.font = [UIFont monospacedSystemFontOfSize:10 weight:UIFontWeightRegular];
+    detail.textColor = [UIColor.whiteColor colorWithAlphaComponent:0.58];
+    detail.numberOfLines = 2;
+    self.robotActionDetailLabel = detail;
+    [actions addArrangedSubview:detail];
+
+    UIButton *enabled = [self controlButtonWithTitle:@"AI Actions: OFF" selector:@selector(toggleRobotActionsEnabled:) events:UIControlEventTouchUpInside];
+    UIButton *approve = [self controlButtonWithTitle:@"Approve" selector:@selector(approveRobotAction:) events:UIControlEventTouchUpInside];
+    UIButton *reject = [self controlButtonWithTitle:@"Reject" selector:@selector(rejectRobotAction:) events:UIControlEventTouchUpInside];
+    UIButton *cancel = [self controlButtonWithTitle:@"Cancel" selector:@selector(cancelRobotAction:) events:UIControlEventTouchUpInside];
+    UIButton *complete = [self controlButtonWithTitle:@"Complete" selector:@selector(completeRobotAction:) events:UIControlEventTouchUpInside];
+    UIButton *failed = [self controlButtonWithTitle:@"Failed" selector:@selector(failRobotAction:) events:UIControlEventTouchUpInside];
+    self.robotActionsEnabledButton = enabled;
+    self.robotActionApproveButton = approve;
+    self.robotActionRejectButton = reject;
+    self.robotActionCancelButton = cancel;
+    self.robotActionCompleteButton = complete;
+    self.robotActionFailedButton = failed;
+    [actions addArrangedSubview:[self equalRowWithViews:@[enabled, approve, reject, cancel, complete, failed]]];
+    self.robotActionPanel = actionPanel;
+    return panel;
+}
+
+- (UIView *)buildIPadManualControls
+{
+    UIView *panel = [UIView new];
+    panel.translatesAutoresizingMaskIntoConstraints = NO;
+    [self styleConsolePanel:panel];
+
+    UIStackView *stack = [UIStackView new];
+    stack.translatesAutoresizingMaskIntoConstraints = NO;
+    stack.axis = UILayoutConstraintAxisVertical;
+    stack.distribution = UIStackViewDistributionFillEqually;
+    stack.spacing = 4;
+    stack.layoutMargins = UIEdgeInsetsMake(6, 6, 6, 6);
+    stack.layoutMarginsRelativeArrangement = YES;
+    [panel addSubview:stack];
+    [NSLayoutConstraint activateConstraints:@[
+        [stack.leadingAnchor constraintEqualToAnchor:panel.leadingAnchor],
+        [stack.trailingAnchor constraintEqualToAnchor:panel.trailingAnchor],
+        [stack.topAnchor constraintEqualToAnchor:panel.topAnchor],
+        [stack.bottomAnchor constraintEqualToAnchor:panel.bottomAnchor]
+    ]];
+
+    UISlider *speedSlider = [UISlider new];
+    speedSlider.minimumValue = 0;
+    speedSlider.maximumValue = 100;
+    speedSlider.value = self.speed;
+    speedSlider.minimumTrackTintColor = [self consoleAmberColor];
+    [speedSlider addTarget:self action:@selector(speed_slider_action:) forControlEvents:UIControlEventValueChanged];
+    self.speedSlider = speedSlider;
+    UILabel *speedCaption = [self consoleCaptionWithText:@"Tread power"];
+    [speedCaption.widthAnchor constraintEqualToConstant:82].active = YES;
+    UIButton *minus = [self controlButtonWithTitle:@"−" selector:@selector(speed_reduce:) events:UIControlEventTouchUpInside];
+    UIButton *plus = [self controlButtonWithTitle:@"+" selector:@selector(speed_increase:) events:UIControlEventTouchUpInside];
+    [minus.widthAnchor constraintEqualToConstant:44].active = YES;
+    [plus.widthAnchor constraintEqualToConstant:44].active = YES;
+    UIStackView *speedRow = [[UIStackView alloc] initWithArrangedSubviews:@[speedCaption, minus, speedSlider, plus]];
+    speedRow.axis = UILayoutConstraintAxisHorizontal;
+    speedRow.alignment = UIStackViewAlignmentCenter;
+    speedRow.spacing = 5;
+    [stack addArrangedSubview:speedRow];
+
+    [stack addArrangedSubview:[self equalRowWithViews:@[
+        [self controlButtonWithTitle:@"Forward" selector:@selector(speed_FORWARD_toggle:) events:UIControlEventTouchUpInside],
+        [self controlButtonWithTitle:@"Reverse" selector:@selector(speed_REVERSE_toggle:) events:UIControlEventTouchUpInside],
+        [self controlButtonWithTitle:@"Run / Stop" selector:@selector(speed_playpause_action:) events:UIControlEventTouchUpInside],
+        [self controlButtonWithTitle:@"Tread Brake" selector:@selector(tred_brakelock:) events:UIControlEventTouchUpInside]
+    ]]];
+    [stack addArrangedSubview:[self equalRowWithViews:@[
+        [self momentaryButtonWithTitle:@"Flipper +" down:@selector(flipper_FORWARD_touchdown:) up:@selector(flipper_FORWARD_touchup:)],
+        [self momentaryButtonWithTitle:@"Flipper Relax" down:@selector(flipper_RELAX_touchdown:) up:@selector(flipper_RELAX_touchup:)],
+        [self momentaryButtonWithTitle:@"Flipper −" down:@selector(flipper_BACKWARD_touchdown:) up:@selector(flipper_BACKWARD_touchup:)],
+        [self controlButtonWithTitle:@"Flipper Brake" selector:@selector(flipper_brakelock:) events:UIControlEventTouchUpInside]
+    ]]];
+    [stack addArrangedSubview:[self equalRowWithViews:@[
+        [self momentaryButtonWithTitle:@"Lift Front" down:@selector(lact_FRONT_touchdown:) up:@selector(lact_FRONT_touchup:)],
+        [self controlButtonWithTitle:@"Lift Gravity" selector:@selector(lact_GRAVITY_toggle:) events:UIControlEventTouchUpInside],
+        [self momentaryButtonWithTitle:@"Lift Back" down:@selector(lact_BACK_touchdown:) up:@selector(lact_BACK_touchup:)],
+        [self controlButtonWithTitle:@"10% Power" selector:@selector(speed_10Percent:) events:UIControlEventTouchUpInside]
+    ]]];
+    self.commandSheetStackView = stack;
+    return panel;
+}
+
+- (UIViewController *)buildIPadCommandTab
+{
+    UIViewController *controller = [self tabControllerWithTitle:@"Command" systemImage:@"square.grid.2x2.fill"];
+    controller.view.backgroundColor = [self consoleBackgroundColor];
+
+    ROBOpenStreetMapView *map = [ROBOpenStreetMapView new];
+    map.translatesAutoresizingMaskIntoConstraints = NO;
+    map.mapDelegate = self;
+    [controller.view addSubview:map];
+    self.openStreetMapView = map;
+
+    UIImageView *mapImageSink = [UIImageView new];
+    mapImageSink.hidden = YES;
+    [controller.view addSubview:mapImageSink];
+    self.rpLidarMapView = mapImageSink;
+    self.rpLidarPolarView = [RPLidarPolarView new];
+
+    UIView *deck = [UIView new];
+    deck.translatesAutoresizingMaskIntoConstraints = NO;
+    deck.backgroundColor = [self consoleBackgroundColor];
+    [controller.view addSubview:deck];
+    self.iPadCommandDeck = deck;
+
+    UIView *narrative = [self buildIPadNarrativeChannel];
+    UIView *manual = [self buildIPadManualControls];
+    DaydreamView *joystick = [DaydreamView new];
+    joystick.translatesAutoresizingMaskIntoConstraints = NO;
+    joystick.backgroundColor = UIColor.clearColor;
+    joystick.accessibilityLabel = @"Left and right tread joysticks";
+    [deck addSubview:narrative];
+    [deck addSubview:manual];
+    [deck addSubview:joystick];
+    self.iPadNarrativePanel = narrative;
+    self.iPadManualPanel = manual;
+    self.daydreamView = joystick;
+
+    NSLayoutConstraint *mapHeight = [map.heightAnchor constraintEqualToConstant:300];
+    self.iPadCommandMapHeightConstraint = mapHeight;
+    [NSLayoutConstraint activateConstraints:@[
+        [map.leadingAnchor constraintEqualToAnchor:controller.view.leadingAnchor],
+        [map.trailingAnchor constraintEqualToAnchor:controller.view.trailingAnchor],
+        [map.topAnchor constraintEqualToAnchor:controller.view.topAnchor],
+        mapHeight,
+        [deck.leadingAnchor constraintEqualToAnchor:controller.view.leadingAnchor],
+        [deck.trailingAnchor constraintEqualToAnchor:controller.view.trailingAnchor],
+        [deck.topAnchor constraintEqualToAnchor:map.bottomAnchor],
+        [deck.bottomAnchor constraintEqualToAnchor:controller.view.bottomAnchor],
+        [narrative.leadingAnchor constraintEqualToAnchor:deck.leadingAnchor constant:10],
+        [narrative.trailingAnchor constraintEqualToAnchor:deck.trailingAnchor constant:-10],
+        [joystick.leadingAnchor constraintEqualToAnchor:deck.leadingAnchor],
+        [joystick.trailingAnchor constraintEqualToAnchor:deck.trailingAnchor]
+    ]];
+
+    self.iPadLandscapeCommandConstraints = @[
+        [narrative.topAnchor constraintEqualToAnchor:deck.topAnchor constant:8],
+        [narrative.heightAnchor constraintEqualToConstant:150],
+        [manual.topAnchor constraintEqualToAnchor:narrative.bottomAnchor constant:6],
+        [manual.bottomAnchor constraintEqualToAnchor:deck.bottomAnchor constant:-8],
+        [manual.centerXAnchor constraintEqualToAnchor:deck.centerXAnchor],
+        [manual.widthAnchor constraintLessThanOrEqualToConstant:540],
+        [manual.leadingAnchor constraintGreaterThanOrEqualToAnchor:deck.leadingAnchor constant:210],
+        [manual.trailingAnchor constraintLessThanOrEqualToAnchor:deck.trailingAnchor constant:-210],
+        [joystick.topAnchor constraintEqualToAnchor:narrative.bottomAnchor constant:2],
+        [joystick.bottomAnchor constraintEqualToAnchor:deck.bottomAnchor]
+    ];
+    self.iPadPortraitCommandConstraints = @[
+        [narrative.topAnchor constraintEqualToAnchor:deck.topAnchor constant:8],
+        [narrative.heightAnchor constraintEqualToConstant:180],
+        [manual.topAnchor constraintEqualToAnchor:narrative.bottomAnchor constant:6],
+        [manual.leadingAnchor constraintEqualToAnchor:deck.leadingAnchor constant:16],
+        [manual.trailingAnchor constraintEqualToAnchor:deck.trailingAnchor constant:-16],
+        [manual.heightAnchor constraintEqualToConstant:200],
+        [joystick.topAnchor constraintEqualToAnchor:manual.bottomAnchor constant:2],
+        [joystick.bottomAnchor constraintEqualToAnchor:deck.bottomAnchor]
+    ];
+    [NSLayoutConstraint activateConstraints:self.iPadPortraitCommandConstraints];
+    self.iPadCommandUsesLandscapeLayout = NO;
+    return controller;
+}
+
+- (UIViewController *)buildSettingsTab
+{
+    UIViewController *controller = [self tabControllerWithTitle:@"Settings" systemImage:@"gearshape.fill"];
+
+    UILabel *settingsTitle = [self sectionLabelWithText:@"Controller pairing"];
+    settingsTitle.translatesAutoresizingMaskIntoConstraints = NO;
+    [controller.view addSubview:settingsTitle];
+    UIButton *pair = [self controlButtonWithTitle:@"Pair Cerebro…" selector:@selector(pairCerebroController:) events:UIControlEventTouchUpInside];
+    [controller.view addSubview:pair];
+    self.pairControllerButton = pair;
+
+    UILabel *languageTitle = [self sectionLabelWithText:@"Speech and output language"];
+    languageTitle.translatesAutoresizingMaskIntoConstraints = NO;
+    [controller.view addSubview:languageTitle];
+    UITableView *languageTable = [[UITableView alloc] initWithFrame:CGRectZero style:UITableViewStyleInsetGrouped];
+    languageTable.translatesAutoresizingMaskIntoConstraints = NO;
+    languageTable.dataSource = self;
+    languageTable.delegate = self;
+    languageTable.rowHeight = 58;
+    languageTable.backgroundColor = [self usesIPadCommandConsole] ? [self consoleBackgroundColor] : UIColor.systemBackgroundColor;
+    languageTable.separatorColor = [self usesIPadCommandConsole]
+        ? [[self consoleAmberColor] colorWithAlphaComponent:0.22]
+        : UIColor.separatorColor;
+    self.languageTableView = languageTable;
+    [controller.view addSubview:languageTable];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [settingsTitle.leadingAnchor constraintEqualToAnchor:controller.view.safeAreaLayoutGuide.leadingAnchor constant:18],
+        [settingsTitle.trailingAnchor constraintEqualToAnchor:controller.view.safeAreaLayoutGuide.trailingAnchor constant:-18],
+        [settingsTitle.topAnchor constraintEqualToAnchor:controller.view.safeAreaLayoutGuide.topAnchor constant:14],
+        [pair.leadingAnchor constraintEqualToAnchor:settingsTitle.leadingAnchor],
+        [pair.trailingAnchor constraintEqualToAnchor:settingsTitle.trailingAnchor],
+        [pair.topAnchor constraintEqualToAnchor:settingsTitle.bottomAnchor constant:8],
+        [languageTitle.leadingAnchor constraintEqualToAnchor:settingsTitle.leadingAnchor],
+        [languageTitle.trailingAnchor constraintEqualToAnchor:settingsTitle.trailingAnchor],
+        [languageTitle.topAnchor constraintEqualToAnchor:pair.bottomAnchor constant:18],
+        [languageTable.leadingAnchor constraintEqualToAnchor:controller.view.leadingAnchor],
+        [languageTable.trailingAnchor constraintEqualToAnchor:controller.view.trailingAnchor],
+        [languageTable.topAnchor constraintEqualToAnchor:languageTitle.bottomAnchor constant:4],
+        [languageTable.bottomAnchor constraintEqualToAnchor:controller.view.bottomAnchor]
+    ]];
+    return controller;
+}
+
+- (UIView *)buildPersistentOverlay
+{
+    UIBlurEffectStyle blurStyle = [self usesIPadCommandConsole]
+        ? UIBlurEffectStyleSystemChromeMaterialDark
+        : UIBlurEffectStyleSystemChromeMaterial;
+    UIVisualEffectView *overlay = [[UIVisualEffectView alloc] initWithEffect:[UIBlurEffect effectWithStyle:blurStyle]];
+    overlay.translatesAutoresizingMaskIntoConstraints = NO;
+    if ([self usesIPadCommandConsole]) {
+        overlay.contentView.backgroundColor = [[self consoleBackgroundColor] colorWithAlphaComponent:0.84];
+        overlay.layer.borderColor = [[self consoleAmberColor] colorWithAlphaComponent:0.22].CGColor;
+        overlay.layer.borderWidth = 1.0;
+    }
+
+    UIStackView *content = [UIStackView new];
+    content.translatesAutoresizingMaskIntoConstraints = NO;
+    content.axis = UILayoutConstraintAxisVertical;
+    content.spacing = 4;
+    content.layoutMargins = UIEdgeInsetsMake(6, 10, 6, 10);
+    content.layoutMarginsRelativeArrangement = YES;
+    [overlay.contentView addSubview:content];
+
+    UIButton *reconnect = [self controlButtonWithTitle:@"Reconnect" selector:@selector(reconnectAutoNet:) events:UIControlEventTouchUpInside];
+    reconnect.accessibilityHint = @"Reconnect to the paired Cerebro controller";
+    UIView *indicator = [UIView new];
+    indicator.translatesAutoresizingMaskIntoConstraints = NO;
+    indicator.backgroundColor = UIColor.systemRedColor;
+    indicator.layer.cornerRadius = 7;
+    [indicator.widthAnchor constraintEqualToConstant:14].active = YES;
+    [indicator.heightAnchor constraintEqualToConstant:14].active = YES;
+    self.chatConnectionStatus = indicator;
+
+    UILabel *linkLabel = [UILabel new];
+    linkLabel.text = @"Disconnected";
+    linkLabel.font = [self usesIPadCommandConsole]
+        ? [UIFont monospacedSystemFontOfSize:11 weight:UIFontWeightSemibold]
+        : [UIFont preferredFontForTextStyle:UIFontTextStyleCaption1];
+    linkLabel.textColor = [self usesIPadCommandConsole]
+        ? [UIColor.whiteColor colorWithAlphaComponent:0.68]
+        : UIColor.secondaryLabelColor;
+    self.connectionStatusLabel = linkLabel;
+    UIButton *requestControl = [self controlButtonWithTitle:@"Request Control" selector:@selector(RequestToBeMasterControllerAction:) events:UIControlEventTouchUpInside];
+    UIStackView *topRow = [[UIStackView alloc] initWithArrangedSubviews:@[reconnect, indicator, linkLabel, [UIView new], requestControl]];
+    topRow.axis = UILayoutConstraintAxisHorizontal;
+    topRow.alignment = UIStackViewAlignmentCenter;
+    topRow.spacing = 8;
+    [content addArrangedSubview:topRow];
+
+    UILabel *position = [UILabel new];
+    position.text = @"x:0.00  y:0.00  z:0.00";
+    position.font = [UIFont monospacedDigitSystemFontOfSize:12 weight:UIFontWeightMedium];
+    position.textColor = [self usesIPadCommandConsole] ? [self consoleAmberColor] : UIColor.labelColor;
+    position.adjustsFontSizeToFitWidth = YES;
+    position.minimumScaleFactor = 0.7;
+    self.locationLabel = position;
+    UILabel *rotation = [UILabel new];
+    rotation.text = @"yaw:0.00  pitch:0.00  roll:0.00";
+    rotation.font = [UIFont monospacedDigitSystemFontOfSize:12 weight:UIFontWeightMedium];
+    rotation.textColor = [self usesIPadCommandConsole] ? [self consoleAmberColor] : UIColor.labelColor;
+    rotation.textAlignment = NSTextAlignmentRight;
+    rotation.adjustsFontSizeToFitWidth = YES;
+    rotation.minimumScaleFactor = 0.7;
+    self.rotationLabel = rotation;
+    UIStackView *telemetry = [[UIStackView alloc] initWithArrangedSubviews:@[position, rotation]];
+    telemetry.axis = UILayoutConstraintAxisHorizontal;
+    telemetry.distribution = UIStackViewDistributionFillEqually;
+    telemetry.spacing = 12;
+    [content addArrangedSubview:telemetry];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [content.leadingAnchor constraintEqualToAnchor:overlay.contentView.leadingAnchor],
+        [content.trailingAnchor constraintEqualToAnchor:overlay.contentView.trailingAnchor],
+        [content.topAnchor constraintEqualToAnchor:overlay.contentView.topAnchor],
+        [content.bottomAnchor constraintEqualToAnchor:overlay.contentView.bottomAnchor]
+    ]];
+    self.persistentControlOverlay = overlay;
+    return overlay;
+}
+
+- (void)installTabbedInterface
+{
+    NSArray<UIView *> *storyboardSubviews = self.view.subviews.copy;
+    for (UIView *subview in storyboardSubviews) {
+        [subview removeFromSuperview];
+    }
+    self.controlTrailingSpace = nil;
+    self.languageLeadingSpace = nil;
+    self.view.backgroundColor = [self usesIPadCommandConsole] ? [self consoleBackgroundColor] : UIColor.systemBackgroundColor;
+
+    UIView *overlay = [self buildPersistentOverlay];
+    [self.view addSubview:overlay];
+
+    UITabBarController *tabs = [UITabBarController new];
+    if ([self usesIPadCommandConsole]) {
+        tabs.viewControllers = @[
+            [self buildIPadCommandTab],
+            [self buildSettingsTab]
+        ];
+    } else {
+        tabs.viewControllers = @[
+            [self buildMapTab],
+            [self buildControlsTab],
+            [self buildAutoTab],
+            [self buildSettingsTab]
+        ];
+    }
+    tabs.selectedIndex = 0;
+    tabs.tabBar.translucent = YES;
+    if ([self usesIPadCommandConsole]) {
+        tabs.tabBar.barStyle = UIBarStyleBlack;
+        tabs.tabBar.backgroundColor = [self consoleBackgroundColor];
+        tabs.tabBar.tintColor = [self consoleAmberColor];
+        tabs.tabBar.unselectedItemTintColor = [UIColor.whiteColor colorWithAlphaComponent:0.45];
+        if (@available(iOS 18.0, *)) {
+            tabs.mode = UITabBarControllerModeTabBar;
+        }
+    }
+    [self addChildViewController:tabs];
+    tabs.view.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view insertSubview:tabs.view belowSubview:overlay];
+    [tabs didMoveToParentViewController:self];
+    self.robotTabBarController = tabs;
+
+    UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
+    [NSLayoutConstraint activateConstraints:@[
+        [overlay.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [overlay.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [overlay.topAnchor constraintEqualToAnchor:safe.topAnchor],
+        [overlay.heightAnchor constraintEqualToConstant:82],
+        [tabs.view.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [tabs.view.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [tabs.view.topAnchor constraintEqualToAnchor:overlay.bottomAnchor],
+        [tabs.view.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor]
+    ]];
+    [self.view bringSubviewToFront:overlay];
+}
+
+- (void)updateIPadCommandLayoutForSize:(CGSize)size
+{
+    if (![self usesIPadCommandConsole] || self.iPadCommandMapHeightConstraint == nil) {
+        return;
+    }
+
+    BOOL landscape = size.width > size.height;
+    CGFloat requestedMapHeight = landscape ? size.height * 0.34 : size.height * 0.40;
+    CGFloat minimumMapHeight = landscape ? 230.0 : 360.0;
+    CGFloat maximumMapHeight = landscape ? 420.0 : 560.0;
+    self.iPadCommandMapHeightConstraint.constant = MIN(maximumMapHeight, MAX(minimumMapHeight, requestedMapHeight));
+
+    if (landscape == self.iPadCommandUsesLandscapeLayout) {
+        return;
+    }
+    self.daydreamView.leftJoystick = CGPointMake(-999, -999);
+    self.daydreamView.rightJoystick = CGPointMake(-999, -999);
+    if (landscape) {
+        [NSLayoutConstraint deactivateConstraints:self.iPadPortraitCommandConstraints];
+        [NSLayoutConstraint activateConstraints:self.iPadLandscapeCommandConstraints];
+    } else {
+        [NSLayoutConstraint deactivateConstraints:self.iPadLandscapeCommandConstraints];
+        [NSLayoutConstraint activateConstraints:self.iPadPortraitCommandConstraints];
+    }
+    self.iPadCommandUsesLandscapeLayout = landscape;
+    [self.daydreamView setNeedsLayout];
+    [self.daydreamView setNeedsDisplay];
+}
+
+- (void)viewDidLayoutSubviews
+{
+    [super viewDidLayoutSubviews];
+    [self updateIPadCommandLayoutForSize:self.view.bounds.size];
+}
+
+- (void)microphoneTouchDown:(UIButton *)sender
+{
+    [self setMicrophoneActiveAppearance:YES];
+    [self recordButtonTouchDown:sender];
+}
+
+- (void)microphoneTouchReleased:(UIButton *)sender
+{
+    [self setMicrophoneActiveAppearance:NO];
+    [self recordButtonTouchUp:sender];
+}
+
+- (void)setMicrophoneActiveAppearance:(BOOL)active
+{
+    [UIView animateWithDuration:0.16 animations:^{
+        self.microphoneGlowView.alpha = active ? 1.0 : 0.16;
+        self.microphoneBlurView.alpha = active ? 0.72 : 0.12;
+        self.microphoneButton.backgroundColor = active ? UIColor.systemRedColor : UIColor.systemGray5Color;
+        self.microphoneButton.tintColor = active ? UIColor.whiteColor : UIColor.labelColor;
+        self.microphoneButton.transform = active ? CGAffineTransformMakeScale(1.06, 1.06) : CGAffineTransformIdentity;
+    }];
+    self.microphoneButton.accessibilityValue = active ? @"Listening" : @"Off";
+}
+
 - (void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray<CLLocation *> *)locations
 {
-    CLLocation *newLocation = locations.firstObject;
+    CLLocation *newLocation = locations.lastObject;
     // test that the horizontal accuracy does not indicate an invalid measurement
     if (newLocation.horizontalAccuracy < 0) {
         return;
@@ -174,7 +1187,8 @@
     if (locationAge > 5.0) {
         return;
     }
-    
+    [self.openStreetMapView updateRobotLatitude:newLocation.coordinate.latitude
+                                      longitude:newLocation.coordinate.longitude];
 }
 
 
@@ -204,6 +1218,7 @@
     self.autonomySessionState = ROBAutonomySessionStateInactive;
     self.autonomyStatusDetail = @"Inactive — one operator tap starts a bounded social-roam session.";
     self.autonomyStartRequested = NO;
+    [self installTabbedInterface];
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(applicationWillResignActive:)
                                                  name:UIApplicationWillResignActiveNotification
@@ -212,6 +1227,10 @@
     [self refreshAutonomyConsole];
 
     self.rpLidarMapController = [[RPLidarMapController alloc] initWithRpLidarMapView:self.rpLidarMapView];
+    __weak ConsciousViewController *weakSelfForMap = self;
+    self.rpLidarMapController.onMapImageUpdated = ^(UIImage *image) {
+        [weakSelfForMap.openStreetMapView updateOccupancyMapImage:image];
+    };
     //---
     //Location Manager code - versy simple
     self.locationManager = [CLLocationManager new];
@@ -374,6 +1393,7 @@
     
     self.safeToStartRecording = true;
     [self speechAudioInit];
+    [self.languageTableView reloadData];
 }
 
 - (void) systemVolumeDidChange:(NSNotification *)notification {
@@ -845,7 +1865,9 @@
 
 
 - (void)positionTextView {
-    
+    if (self.textView.text.length == 0) {
+        return;
+    }
     // scroll to the bottom of the content
     NSRange lastLine = NSMakeRange(self.textView.text.length - 1, 1);
     [self.textView scrollRangeToVisible:lastLine];
@@ -1133,6 +2155,42 @@
     [self presentViewController:alert animated:YES completion:nil];
 }
 
+- (void)openStreetMapViewDidRequestSearch:(ROBOpenStreetMapView *)mapView
+{
+    [self presentDestinationSearch];
+}
+
+- (void)openStreetMapView:(ROBOpenStreetMapView *)mapView
+didSelectDestinationLatitude:(double)latitude
+                longitude:(double)longitude
+{
+    CLLocation *robotLocation = self.locationManager.location;
+    CLLocation *destination = [[CLLocation alloc] initWithLatitude:latitude longitude:longitude];
+    CLLocationDistance distance = robotLocation != nil
+        ? [destination distanceFromLocation:robotLocation]
+        : -1;
+    NSString *coordinateName = [NSString stringWithFormat:@"%.6f, %.6f", latitude, longitude];
+    NSString *distanceDetail = distance >= 0
+        ? [NSString stringWithFormat:@"This point is approximately %.0f m from ROB's reported location. Cerebro enforces its own 50 m route limit.", distance]
+        : @"Cerebro will validate this point against its 50 m route limit.";
+    UIAlertController *confirmation = [UIAlertController
+        alertControllerWithTitle:@"Navigate to this point?"
+                         message:distanceDetail
+                  preferredStyle:UIAlertControllerStyleAlert];
+    [confirmation addAction:[UIAlertAction actionWithTitle:@"Cancel"
+                                                     style:UIAlertActionStyleCancel
+                                                   handler:nil]];
+    __weak ConsciousViewController *weakSelf = self;
+    [confirmation addAction:[UIAlertAction actionWithTitle:@"Authorize Navigation"
+                                                     style:UIAlertActionStyleDefault
+                                                   handler:^(UIAlertAction *action) {
+        [weakSelf startDestinationSessionWithLatitude:latitude
+                                            longitude:longitude
+                                                 name:coordinateName];
+    }]];
+    [self presentViewController:confirmation animated:YES completion:nil];
+}
+
 - (void)searchOpenStreetMapForDestination:(NSString *)query
 {
     NSTimeInterval now = NSProcessInfo.processInfo.systemUptime;
@@ -1203,6 +2261,9 @@
                 [chooser addAction:[UIAlertAction actionWithTitle:shortName
                                                            style:UIAlertActionStyleDefault
                                                          handler:^(UIAlertAction *action) {
+                    [strongSelf.openStreetMapView showDestinationWithLatitude:latitude
+                                                                    longitude:longitude
+                                                                        title:name];
                     [strongSelf startDestinationSessionWithLatitude:latitude
                                                           longitude:longitude
                                                                name:name];
@@ -1379,7 +2440,11 @@
 {
     BOOL pairingConfigured = self.autoNetClient.isPairingConfigured;
     BOOL connected = self.autoNetClient.isConnected;
-    self.chatConnectionStatus.backgroundColor = connected ? [UIColor greenColor] : [UIColor redColor];
+    self.chatConnectionStatus.backgroundColor = connected ? UIColor.systemGreenColor : UIColor.systemRedColor;
+    self.connectionStatusLabel.text = connected
+        ? @"Connected"
+        : (pairingConfigured ? @"Disconnected" : @"Not paired");
+    self.connectionStatusLabel.textColor = connected ? UIColor.systemGreenColor : UIColor.systemRedColor;
     BOOL sessionMayBeActive = self.autonomySessionID.length > 0 || self.autonomyStartRequested ||
         self.autonomySessionState == ROBAutonomySessionStateActive ||
         self.autonomySessionState == ROBAutonomySessionStateStopping;
@@ -1688,6 +2753,7 @@
     // silently revoke or orphan that server-side session.
     [self setRobotActionsEnabled:NO
                           reason:@"Controller resigned active; AI actions reset to Off"];
+    [self setMicrophoneActiveAppearance:NO];
     self.speechRecognitionGeneration += 1;
     [self stopSpeechRecognition];
     self.safeToStartRecording = true;
@@ -2040,22 +3106,33 @@
             __weak ConsciousViewController *weakSelf = self;
             
             NSMutableArray *lidarScan = [msg componentsSeparatedByString:@"\n"].mutableCopy;
+            if (lidarScan.count < 2) {
+                NSLog(@"Ignoring malformed RPLidar scan without position and pose headers");
+                return;
+            }
             //x:y:z
             NSArray *position = [lidarScan[0] componentsSeparatedByString:@":"];
             [lidarScan removeObjectAtIndex:0];
-            weakSelf.locationLabel.text = [NSString stringWithFormat:@"x:%@ y:%@ z:%@", position[0], position[1], position[2]];
+            if (position.count >= 3) {
+                weakSelf.locationLabel.text = [NSString stringWithFormat:@"x:%@  y:%@  z:%@", position[0], position[1], position[2]];
+            }
             
             //yaw:pitch:roll
             NSArray *pose = [lidarScan[0] componentsSeparatedByString:@":"];
             [lidarScan removeObjectAtIndex:0];
-            weakSelf.rotationLabel.text = [NSString stringWithFormat:@"yaw:%f pitch:%f roll:%f", self.yaw, self.pitch, self.roll];
+            double robotYaw = pose.count > 0 ? [pose[0] doubleValue] : self.yaw;
+            double robotPitch = pose.count > 1 ? [pose[1] doubleValue] : self.pitch;
+            double robotRoll = pose.count > 2 ? [pose[2] doubleValue] : self.roll;
+            double robotHeadingRadians = fabs(robotYaw) > (M_PI * 2.0)
+                ? robotYaw * M_PI / 180.0
+                : robotYaw;
+            weakSelf.rotationLabel.text = [NSString stringWithFormat:@"yaw:%.2f  pitch:%.2f  roll:%.2f", robotYaw, robotPitch, robotRoll];
 
             //laserPoint-distance:angle
             
             weakSelf.rpLidarPolarView.laserPoints = lidarScan;
-            //TODO: we need to inject the map data into this polarView correctly and test the current location calculations...
-            
             [weakSelf.rpLidarPolarView setNeedsDisplay];
+            [weakSelf.openStreetMapView updateLaserPoints:lidarScan headingRadians:robotHeadingRadians];
         });
     }
     if ([sender isEqualToString:@"rpLidar.map"]) {
@@ -2092,6 +3169,9 @@
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
     UITableViewCell * cell = [tableView dequeueReusableCellWithIdentifier:@"languageCell"];
+    if (cell == nil) {
+        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"languageCell"];
+    }
     cell.textLabel.text = [self.localeArray[indexPath.row] valueForKey:@"locale_id"];
     cell.detailTextLabel.text = [self.localeArray[indexPath.row] valueForKey:@"locale_string"];
     
