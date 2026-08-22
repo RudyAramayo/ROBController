@@ -91,6 +91,11 @@
 @property (nonatomic, strong) ROBAutonomySessionMessage *pendingAutonomyCommand;
 @property (nonatomic, copy) NSString *autonomyStatusDetail;
 @property (nonatomic, assign) BOOL autonomyStartRequested;
+@property (nonatomic, assign) BOOL autonomyHasAuthorizedDestination;
+@property (nonatomic, assign) double autonomyDestinationLatitude;
+@property (nonatomic, assign) double autonomyDestinationLongitude;
+@property (nonatomic, copy) NSString *autonomyDestinationName;
+@property (nonatomic, assign) NSTimeInterval lastOpenStreetMapSearchUptime;
 // Gemini may propose a bounded, high-level action, but this controller is only
 // an operator approval/status console. These controls never drive hardware.
 @property (weak, nonatomic) IBOutlet UIView *robotActionPanel;
@@ -126,6 +131,12 @@
 - (void)handleAutonomyMessage:(ROBAutonomySessionMessage *)message;
 - (void)retransmitPendingAutonomyCommand;
 - (void)refreshAutonomyConsole;
+- (void)presentAutonomyModeChoice;
+- (void)presentDestinationSearch;
+- (void)searchOpenStreetMapForDestination:(NSString *)query;
+- (void)startDestinationSessionWithLatitude:(double)latitude
+                                  longitude:(double)longitude
+                                       name:(NSString *)name;
 - (void)refreshRobotActionConsole;
 - (void)announceRobotActionConsole;
 - (void)setRobotActionsEnabled:(BOOL)enabled reason:(NSString *)reason;
@@ -940,6 +951,8 @@
         return;
     }
 
+    self.autonomyHasAuthorizedDestination = NO;
+    self.autonomyDestinationName = nil;
     self.autonomySessionID = [NSUUID UUID].UUIDString;
     self.autonomySequence = 1;
     self.autonomyStartRequested = YES;
@@ -958,6 +971,180 @@
     BOOL sent = [self sendAutonomyMessage:self.pendingAutonomyCommand];
     if (!sent) {
         self.autonomyStatusDetail = @"Start queued — waiting for the authenticated Cerebro link.";
+    }
+    [self refreshAutonomyConsole];
+}
+
+- (void)presentAutonomyModeChoice
+{
+    UIAlertController *alert = [UIAlertController
+        alertControllerWithTitle:@"Start Autonomy"
+                         message:@"Choose a bounded mode. Destination navigation is an early nearby-route pilot and will remain stopped until ROB has learned enough terrain from manual driving."
+                  preferredStyle:UIAlertControllerStyleAlert];
+    __weak ConsciousViewController *weakSelf = self;
+    [alert addAction:[UIAlertAction actionWithTitle:@"Navigate to Destination"
+                                             style:UIAlertActionStyleDefault
+                                           handler:^(UIAlertAction *action) {
+        [weakSelf presentDestinationSearch];
+    }]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"Social Roam"
+                                             style:UIAlertActionStyleDefault
+                                           handler:^(UIAlertAction *action) {
+        [weakSelf startSocialRoamSession];
+    }]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"Cancel"
+                                             style:UIAlertActionStyleCancel
+                                           handler:nil]];
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)presentDestinationSearch
+{
+    UIAlertController *alert = [UIAlertController
+        alertControllerWithTitle:@"OpenStreetMap Destination"
+                         message:@"Search once for a nearby path destination. Cerebro will reject routes longer than 50 m. Before starting, physically point ROB along the first path segment; fresh depth and RPLidar remain mandatory."
+                  preferredStyle:UIAlertControllerStyleAlert];
+    [alert addTextFieldWithConfigurationHandler:^(UITextField *textField) {
+        textField.placeholder = @"Place, path, or address";
+        textField.autocorrectionType = UITextAutocorrectionTypeNo;
+        textField.clearButtonMode = UITextFieldViewModeWhileEditing;
+    }];
+    [alert addAction:[UIAlertAction actionWithTitle:@"Cancel"
+                                             style:UIAlertActionStyleCancel
+                                           handler:nil]];
+    __weak ConsciousViewController *weakSelf = self;
+    __weak UITextField *weakSearchField = alert.textFields.firstObject;
+    [alert addAction:[UIAlertAction actionWithTitle:@"Search"
+                                             style:UIAlertActionStyleDefault
+                                           handler:^(UIAlertAction *action) {
+        NSString *query = [weakSearchField.text
+            stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+        if (query.length == 0) {
+            [weakSelf presentControllerNoticeWithTitle:@"Destination required"
+                                               message:@"Enter a place or address to search OpenStreetMap."];
+            return;
+        }
+        [weakSelf searchOpenStreetMapForDestination:query];
+    }]];
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)searchOpenStreetMapForDestination:(NSString *)query
+{
+    NSTimeInterval now = NSProcessInfo.processInfo.systemUptime;
+    if (now - self.lastOpenStreetMapSearchUptime < 1.0) {
+        [self presentControllerNoticeWithTitle:@"Please wait"
+                                       message:@"OpenStreetMap search is limited to one submitted request per second."];
+        return;
+    }
+    self.lastOpenStreetMapSearchUptime = now;
+    NSString *endpoint = [[NSUserDefaults standardUserDefaults] stringForKey:@"ROBNominatimEndpoint"];
+    if (endpoint.length == 0) {
+        endpoint = @"https://nominatim.openstreetmap.org/search";
+    }
+    NSURLComponents *components = [NSURLComponents componentsWithString:endpoint];
+    components.queryItems = @[
+        [NSURLQueryItem queryItemWithName:@"q" value:query],
+        [NSURLQueryItem queryItemWithName:@"format" value:@"jsonv2"],
+        [NSURLQueryItem queryItemWithName:@"limit" value:@"5"]
+    ];
+    if (components.URL == nil) {
+        [self presentControllerNoticeWithTitle:@"Search unavailable"
+                                       message:@"The configured OpenStreetMap search endpoint is invalid."];
+        return;
+    }
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:components.URL
+                                                           cachePolicy:NSURLRequestReloadIgnoringLocalCacheData
+                                                       timeoutInterval:12];
+    [request setValue:@"ROBController/2 (destination selection; https://orbitusrobotics.com)"
+   forHTTPHeaderField:@"User-Agent"];
+    [request setValue:NSLocale.preferredLanguages.firstObject ?: @"en"
+   forHTTPHeaderField:@"Accept-Language"];
+
+    __weak ConsciousViewController *weakSelf = self;
+    [[[NSURLSession sharedSession] dataTaskWithRequest:request
+                                    completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            ConsciousViewController *strongSelf = weakSelf;
+            NSHTTPURLResponse *http = [response isKindOfClass:NSHTTPURLResponse.class]
+                ? (NSHTTPURLResponse *)response : nil;
+            if (strongSelf == nil) { return; }
+            if (error != nil || http.statusCode < 200 || http.statusCode > 299 || data.length > 500000) {
+                [strongSelf presentControllerNoticeWithTitle:@"OpenStreetMap search failed"
+                                                     message:error.localizedDescription ?: @"The search service did not return a usable response."];
+                return;
+            }
+            id decoded = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+            if (![decoded isKindOfClass:NSArray.class] || [(NSArray *)decoded count] == 0) {
+                [strongSelf presentControllerNoticeWithTitle:@"No destinations found"
+                                                     message:@"Try a more specific OpenStreetMap search."];
+                return;
+            }
+            UIAlertController *chooser = [UIAlertController
+                alertControllerWithTitle:@"Choose Destination"
+                                 message:@"OpenStreetMap search results. Route data © OpenStreetMap contributors."
+                          preferredStyle:UIAlertControllerStyleAlert];
+            NSUInteger count = MIN((NSUInteger)3, [(NSArray *)decoded count]);
+            for (NSUInteger index = 0; index < count; index++) {
+                NSDictionary *place = [(NSArray *)decoded objectAtIndex:index];
+                NSString *name = [place[@"display_name"] isKindOfClass:NSString.class]
+                    ? place[@"display_name"] : @"Unnamed destination";
+                double latitude = [place[@"lat"] doubleValue];
+                double longitude = [place[@"lon"] doubleValue];
+                if (!isfinite(latitude) || !isfinite(longitude) || fabs(latitude) > 90 || fabs(longitude) > 180) {
+                    continue;
+                }
+                NSString *shortName = name.length > 80
+                    ? [[name substringToIndex:77] stringByAppendingString:@"…"] : name;
+                [chooser addAction:[UIAlertAction actionWithTitle:shortName
+                                                           style:UIAlertActionStyleDefault
+                                                         handler:^(UIAlertAction *action) {
+                    [strongSelf startDestinationSessionWithLatitude:latitude
+                                                          longitude:longitude
+                                                               name:name];
+                }]];
+            }
+            [chooser addAction:[UIAlertAction actionWithTitle:@"Cancel"
+                                                       style:UIAlertActionStyleCancel
+                                                     handler:nil]];
+            [strongSelf presentViewController:chooser animated:YES completion:nil];
+        });
+    }] resume];
+}
+
+- (void)startDestinationSessionWithLatitude:(double)latitude
+                                  longitude:(double)longitude
+                                       name:(NSString *)name
+{
+    if (!self.autoNetClient.isPairingConfigured || !self.autoNetClient.isConnected) {
+        [self presentControllerNoticeWithTitle:@"Cerebro is not ready"
+                                       message:@"Pair and reconnect to Cerebro before authorizing navigation."];
+        return;
+    }
+    self.autonomyHasAuthorizedDestination = YES;
+    self.autonomyDestinationLatitude = latitude;
+    self.autonomyDestinationLongitude = longitude;
+    self.autonomyDestinationName = name;
+    self.autonomySessionID = NSUUID.UUID.UUIDString;
+    self.autonomySequence = 1;
+    self.autonomyStartRequested = YES;
+    self.autonomySessionState = ROBAutonomySessionStateInactive;
+    self.autonomyStatusDetail = [NSString stringWithFormat:
+        @"Navigation sent for %@ — point ROB down the first path segment; Cerebro will stop until routing, learned terrain, depth, and RPLidar are all ready.", name];
+    self.pendingAutonomyCommand = [ROBAutonomySessionMessage
+        startNavigationWithSessionID:self.autonomySessionID
+                            sequence:self.autonomySequence
+                            senderID:[self robotActionSenderID]
+                         recipientID:nil
+                    zoneRadiusMeters:50.0
+                   maximumSpeedScale:0.14
+                           behaviors:@[@"roam", @"navigate_destination", @"use_learned_traversability", @"stop_motion"]
+                 destinationLatitude:latitude
+                destinationLongitude:longitude
+                     destinationName:name
+                           expiresAt:[NSDate dateWithTimeIntervalSinceNow:2.0 * 60.0 * 60.0]];
+    if (![self sendAutonomyMessage:self.pendingAutonomyCommand]) {
+        self.autonomyStatusDetail = @"Navigation queued — waiting for the authenticated Cerebro link.";
     }
     [self refreshAutonomyConsole];
 }
@@ -996,7 +1183,7 @@
         [self sendAutonomyMessage:self.pendingAutonomyCommand];
         return;
     }
-    [self startSocialRoamSession];
+    [self presentAutonomyModeChoice];
 }
 
 - (void)retransmitPendingAutonomyCommand
@@ -1032,6 +1219,25 @@
         message.sequence < self.pendingAutonomyCommand.sequence) {
         return;
     }
+    if (self.autonomyHasAuthorizedDestination &&
+        (!message.hasDestination ||
+         fabs(message.destinationLatitude - self.autonomyDestinationLatitude) > 0.0000001 ||
+         fabs(message.destinationLongitude - self.autonomyDestinationLongitude) > 0.0000001)) {
+        NSLog(@"Ignoring autonomy status whose destination does not match operator authorization");
+        return;
+    }
+    if (!self.autonomyHasAuthorizedDestination && self.autonomySessionID.length > 0 && message.hasDestination) {
+        NSLog(@"Ignoring autonomy status that adds an unauthorized destination");
+        return;
+    }
+    if (!self.autonomyHasAuthorizedDestination && self.autonomySessionID.length == 0 && message.hasDestination) {
+        // A paired Cerebro status after an app restart is accepted only so the
+        // operator regains an immediate Stop control for the active session.
+        self.autonomyHasAuthorizedDestination = YES;
+        self.autonomyDestinationLatitude = message.destinationLatitude;
+        self.autonomyDestinationLongitude = message.destinationLongitude;
+        self.autonomyDestinationName = message.destinationName;
+    }
 
     self.autonomySessionID = message.sessionID;
     self.autonomySequence = MAX(self.autonomySequence, message.sequence);
@@ -1058,6 +1264,8 @@
             self.autonomyStartRequested = NO;
             self.pendingAutonomyCommand = nil;
             self.autonomySessionID = nil;
+            self.autonomyHasAuthorizedDestination = NO;
+            self.autonomyDestinationName = nil;
             break;
     }
     [self refreshAutonomyConsole];
@@ -1079,7 +1287,7 @@
     self.pairControllerButton.enabled = !sessionMayBeActive;
 
     NSString *stateName = @"INACTIVE";
-    NSString *buttonTitle = @"Start Social Roam";
+    NSString *buttonTitle = @"Start Autonomy…";
     if (self.autonomySessionState == ROBAutonomySessionStateStopping) {
         stateName = @"STOPPING";
         buttonTitle = @"Retry Stop";

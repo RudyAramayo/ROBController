@@ -96,7 +96,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "574"
             endingLineNumber = "574"
-            landmarkName = "-startRecognizer"
+            landmarkName = "-setupSpeechRecognition"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -208,7 +208,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "936"
             endingLineNumber = "936"
-            landmarkName = "-startSocialRoamSession"
+            landmarkName = "-sendAutonomyMessage:"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
