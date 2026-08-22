@@ -10,6 +10,7 @@
 #import "EAGLView.h"
 #import "DaydreamView.h"
 
+#import <AVFoundation/AVFoundation.h>
 #import <Speech/Speech.h>
 #import <CoreLocation/CoreLocation.h>
 #import <CoreML/CoreML.h>
@@ -19,7 +20,7 @@
 #import <WatchConnectivity/WatchConnectivity.h>
 #import "ROBController-Swift.h"
 
-@interface ConsciousViewController () <AVCaptureAudioDataOutputSampleBufferDelegate, AVSpeechSynthesizerDelegate, SFSpeechRecognizerDelegate, SFSpeechRecognitionTaskDelegate, UITableViewDelegate, UITableViewDataSource, AutoNetClientDataDelegate, CLLocationManagerDelegate, ROBOpenStreetMapViewDelegate>
+@interface ConsciousViewController () <AVAudioPlayerDelegate, AVCaptureAudioDataOutputSampleBufferDelegate, AVSpeechSynthesizerDelegate, SFSpeechRecognizerDelegate, SFSpeechRecognitionTaskDelegate, UITableViewDelegate, UITableViewDataSource, AutoNetClientDataDelegate, CLLocationManagerDelegate, ROBOpenStreetMapViewDelegate>
 {
     AVCaptureSession *session;
     AVCaptureDevice *inputDevice;
@@ -62,6 +63,9 @@
 @property (nonatomic, assign) BOOL speechInputTapInstalled;
 @property (nonatomic, assign) NSUInteger speechRecognitionGeneration;
 @property (nonatomic, strong) AVSpeechSynthesizer *speechSynthesizer;
+@property (nonatomic, strong) AVAudioPlayer *microphoneStartCuePlayer;
+@property (nonatomic, strong) AVAudioPlayer *microphoneEndCuePlayer;
+@property (nonatomic, assign) BOOL microphoneButtonHeld;
 @property (nonatomic, assign) BOOL isSpeaking;
 @property (atomic, assign) BOOL safeToStartRecording;
 
@@ -166,6 +170,8 @@
 - (void)presentControllerNoticeWithTitle:(NSString *)title message:(NSString *)message;
 - (void)beginSpeechRecognitionForGeneration:(NSUInteger)generation;
 - (void)stopSpeechRecognition;
+- (void)prepareMicrophoneCuePlayers;
+- (BOOL)activateSpeechAudioSessionWithMode:(AVAudioSessionMode)mode;
 - (void)installTabbedInterface;
 - (void)setMicrophoneActiveAppearance:(BOOL)active;
 - (void)updateIPadCommandLayoutForSize:(CGSize)size;
@@ -1194,6 +1200,7 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    [self prepareMicrophoneCuePlayers];
     // Do any additional setup after loading the view, typically from a nib.
     self.speed = 50;
     self.speedSlider.value = self.speed;
@@ -1508,13 +1515,85 @@
         return;
     }
     self.safeToStartRecording = false;
-    [self setupSpeechRecognition];
+    self.microphoneButtonHeld = YES;
+    [self activateSpeechAudioSessionWithMode:AVAudioSessionModeDefault];
+    [self.microphoneStartCuePlayer stop];
+    self.microphoneStartCuePlayer.currentTime = 0;
+    if (![self.microphoneStartCuePlayer play]) {
+        [self setupSpeechRecognition];
+    }
 }
 
 - (IBAction)recordButtonTouchUp:(id)sender {
+    self.microphoneButtonHeld = NO;
+    [self.microphoneStartCuePlayer stop];
+    self.microphoneStartCuePlayer.currentTime = 0;
     self.speechRecognitionGeneration += 1;
     [self stopSpeechRecognition];
     self.safeToStartRecording = true;
+    [self activateSpeechAudioSessionWithMode:AVAudioSessionModeDefault];
+    [self.microphoneEndCuePlayer stop];
+    self.microphoneEndCuePlayer.currentTime = 0;
+    [self.microphoneEndCuePlayer play];
+}
+
+- (void)prepareMicrophoneCuePlayers
+{
+    NSError *startError = nil;
+    NSURL *startURL = [[NSBundle mainBundle] URLForResource:@"nextel_ptt_start" withExtension:@"caf"];
+    if (startURL != nil) {
+        self.microphoneStartCuePlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:startURL error:&startError];
+        self.microphoneStartCuePlayer.delegate = self;
+        self.microphoneStartCuePlayer.volume = 0.82;
+        [self.microphoneStartCuePlayer prepareToPlay];
+    }
+    if (self.microphoneStartCuePlayer == nil) {
+        NSLog(@"Unable to prepare the Motorola microphone start cue: %@", startError.localizedDescription);
+    }
+
+    NSError *endError = nil;
+    NSURL *endURL = [[NSBundle mainBundle] URLForResource:@"motorola_ptt_end" withExtension:@"caf"];
+    if (endURL != nil) {
+        self.microphoneEndCuePlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:endURL error:&endError];
+        self.microphoneEndCuePlayer.delegate = self;
+        self.microphoneEndCuePlayer.volume = 0.76;
+        [self.microphoneEndCuePlayer prepareToPlay];
+    }
+    if (self.microphoneEndCuePlayer == nil) {
+        NSLog(@"Unable to prepare the Motorola microphone end cue: %@", endError.localizedDescription);
+    }
+}
+
+- (BOOL)activateSpeechAudioSessionWithMode:(AVAudioSessionMode)mode
+{
+    NSError *sessionError = nil;
+    AVAudioSession *audioSession = [AVAudioSession sharedInstance];
+    BOOL configured = [audioSession setCategory:AVAudioSessionCategoryPlayAndRecord
+                                           mode:mode
+                                        options:AVAudioSessionCategoryOptionDefaultToSpeaker
+                                          error:&sessionError];
+    if (configured) {
+        configured = [audioSession setActive:YES error:&sessionError];
+    }
+    if (!configured) {
+        NSLog(@"Unable to activate the microphone audio session: %@", sessionError.localizedDescription);
+    }
+    return configured;
+}
+
+- (void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player successfully:(BOOL)flag
+{
+    if (player == self.microphoneStartCuePlayer && self.microphoneButtonHeld) {
+        [self setupSpeechRecognition];
+    }
+}
+
+- (void)audioPlayerDecodeErrorDidOccur:(AVAudioPlayer *)player error:(NSError *)error
+{
+    NSLog(@"Unable to play a microphone cue: %@", error.localizedDescription);
+    if (player == self.microphoneStartCuePlayer && self.microphoneButtonHeld) {
+        [self setupSpeechRecognition];
+    }
 }
 
 - (void)didReceiveMemoryWarning {
@@ -1600,20 +1679,7 @@
     self.speechRecognitionGeneration += 1;
     [self stopSpeechRecognition];
 
-    NSError *sessionError = nil;
-    AVAudioSession *audioSession = [AVAudioSession sharedInstance];
-    if (![audioSession setCategory:AVAudioSessionCategoryRecord error:&sessionError]) {
-        NSLog(@"Unable to configure the speech audio session category: %@", sessionError.localizedDescription);
-        self.safeToStartRecording = true;
-        return;
-    }
-    if (![audioSession setMode:AVAudioSessionModeMeasurement error:&sessionError]) {
-        NSLog(@"Unable to configure the speech audio session mode: %@", sessionError.localizedDescription);
-        self.safeToStartRecording = true;
-        return;
-    }
-    if (![audioSession setActive:YES error:&sessionError]) {
-        NSLog(@"Unable to activate the speech audio session: %@", sessionError.localizedDescription);
+    if (![self activateSpeechAudioSessionWithMode:AVAudioSessionModeMeasurement]) {
         self.safeToStartRecording = true;
         return;
     }
@@ -2754,6 +2820,9 @@ didSelectDestinationLatitude:(double)latitude
     [self setRobotActionsEnabled:NO
                           reason:@"Controller resigned active; AI actions reset to Off"];
     [self setMicrophoneActiveAppearance:NO];
+    self.microphoneButtonHeld = NO;
+    [self.microphoneStartCuePlayer stop];
+    [self.microphoneEndCuePlayer stop];
     self.speechRecognitionGeneration += 1;
     [self stopSpeechRecognition];
     self.safeToStartRecording = true;
@@ -3174,9 +3243,16 @@ didSelectDestinationLatitude:(double)latitude
     }
     cell.textLabel.text = [self.localeArray[indexPath.row] valueForKey:@"locale_id"];
     cell.detailTextLabel.text = [self.localeArray[indexPath.row] valueForKey:@"locale_string"];
-    
-    cell.contentView.backgroundColor = [UIColor colorWithRed:0.0 green:0.0 blue:0.0 alpha:0.5];
-    cell.backgroundColor = [UIColor colorWithRed:0.0 green:0.0 blue:0.0 alpha:0.5];
+    if ([self usesIPadCommandConsole]) {
+        cell.contentView.backgroundColor = [self consoleSurfaceColor];
+        cell.backgroundColor = [self consoleSurfaceColor];
+        cell.textLabel.textColor = [self consoleAmberColor];
+        cell.detailTextLabel.textColor = [UIColor.whiteColor colorWithAlphaComponent:0.58];
+        cell.tintColor = [self consoleAmberColor];
+    } else {
+        cell.contentView.backgroundColor = [UIColor colorWithRed:0.0 green:0.0 blue:0.0 alpha:0.5];
+        cell.backgroundColor = [UIColor colorWithRed:0.0 green:0.0 blue:0.0 alpha:0.5];
+    }
     
     if (indexPath.row == self.selectedLocaleIndex)
         cell.accessoryType = UITableViewCellAccessoryCheckmark;
@@ -3252,6 +3328,10 @@ didSelectDestinationLatitude:(double)latitude
 
 - (void)dealloc
 {
+    self.microphoneStartCuePlayer.delegate = nil;
+    self.microphoneEndCuePlayer.delegate = nil;
+    [self.microphoneStartCuePlayer stop];
+    [self.microphoneEndCuePlayer stop];
     [self stopSpeechRecognition];
     [self.robotActionExpiryTimer invalidate];
     [self.robotActionHelloTimer invalidate];

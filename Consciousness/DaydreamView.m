@@ -11,6 +11,8 @@
 @property (readwrite, assign) CGPoint currentPointR;
 @property (readwrite, retain) UITouch *leftTouch;
 @property (readwrite, retain) UITouch *rightTouch;
+@property (nonatomic, strong) UIPanGestureRecognizer *joystickPanGestureRecognizer;
+@property (nonatomic, weak) UIScrollView *coordinatedScrollView;
 
 @end
 
@@ -45,7 +47,35 @@
     self.multipleTouchEnabled = YES;
     self.backgroundColor = [UIColor clearColor];
     self.contentMode = UIViewContentModeRedraw;
+    self.joystickPanGestureRecognizer = [[UIPanGestureRecognizer alloc] initWithTarget:self
+                                                                                action:@selector(joystickPanDidChange:)];
+    self.joystickPanGestureRecognizer.minimumNumberOfTouches = 1;
+    self.joystickPanGestureRecognizer.maximumNumberOfTouches = 2;
+    self.joystickPanGestureRecognizer.cancelsTouchesInView = NO;
+    [self addGestureRecognizer:self.joystickPanGestureRecognizer];
     [self resetJoysticks];
+}
+
+- (void)didMoveToSuperview
+{
+    [super didMoveToSuperview];
+    UIScrollView *scrollView = nil;
+    UIView *ancestor = self.superview;
+    while (ancestor != nil) {
+        if ([ancestor isKindOfClass:[UIScrollView class]]) {
+            scrollView = (UIScrollView *)ancestor;
+            break;
+        }
+        ancestor = ancestor.superview;
+    }
+    if (scrollView != nil && scrollView != self.coordinatedScrollView) {
+        [scrollView.panGestureRecognizer requireGestureRecognizerToFail:self.joystickPanGestureRecognizer];
+        self.coordinatedScrollView = scrollView;
+    }
+}
+
+- (void)joystickPanDidChange:(UIPanGestureRecognizer *)gestureRecognizer
+{
 }
 
 - (void)resetJoysticks

@@ -112,7 +112,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "339"
             endingLineNumber = "339"
-            landmarkName = "-momentaryButtonWithTitle:down:up:"
+            landmarkName = "-buildMapTab"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -208,7 +208,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "936"
             endingLineNumber = "936"
-            landmarkName = "-buildSettingsTab"
+            landmarkName = "-buildIPadCommandTab"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -272,7 +272,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "263"
             endingLineNumber = "263"
-            landmarkName = "-equalRowWithViews:"
+            landmarkName = "-controlButtonWithTitle:selector:events:"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

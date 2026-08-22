@@ -24,6 +24,8 @@
 		D4D1592D28027EE000AFFA1E /* RPLidarMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D1592C28027EE000AFFA1E /* RPLidarMapView.swift */; };
 		D4DD62E52E371CB200844D2B /* RPLidarMapController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4DD62E42E371CB200844D2B /* RPLidarMapController.swift */; };
 		D4F100022F00000100000001 /* ROBRobotActionProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4F100012F00000100000001 /* ROBRobotActionProtocol.swift */; };
+		D4B110032F02000100000001 /* nextel_ptt_start.caf in Resources */ = {isa = PBXBuildFile; fileRef = D4B110012F02000100000001 /* nextel_ptt_start.caf */; };
+		D4B110042F02000100000001 /* motorola_ptt_end.caf in Resources */ = {isa = PBXBuildFile; fileRef = D4B110022F02000100000001 /* motorola_ptt_end.caf */; };
 		EA6B40C820B0912500422C7C /* DaydreamView.m in Sources */ = {isa = PBXBuildFile; fileRef = EA6B40C720B0912400422C7C /* DaydreamView.m */; };
 		EA6B40CA20B0938B00422C7C /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA6B40C920B0938B00422C7C /* CoreMotion.framework */; };
 		EA8727DC20A924C00015A7DF /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = EA8727DB20A924C00015A7DF /* AppDelegate.m */; };
@@ -115,6 +117,8 @@
 		D4D1592C28027EE000AFFA1E /* RPLidarMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RPLidarMapView.swift; sourceTree = "<group>"; };
 		D4DD62E42E371CB200844D2B /* RPLidarMapController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RPLidarMapController.swift; sourceTree = "<group>"; };
 		D4F100012F00000100000001 /* ROBRobotActionProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ROBRobotActionProtocol.swift; sourceTree = "<group>"; };
+		D4B110012F02000100000001 /* nextel_ptt_start.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = nextel_ptt_start.caf; sourceTree = "<group>"; };
+		D4B110022F02000100000001 /* motorola_ptt_end.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = motorola_ptt_end.caf; sourceTree = "<group>"; };
 		EA6B40C620B0912400422C7C /* DaydreamView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DaydreamView.h; sourceTree = "<group>"; };
 		EA6B40C720B0912400422C7C /* DaydreamView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DaydreamView.m; sourceTree = "<group>"; };
 		EA6B40C920B0938B00422C7C /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
@@ -322,6 +326,8 @@
 		EA87280D20A925730015A7DF /* audio */ = {
 			isa = PBXGroup;
 			children = (
+				D4B110012F02000100000001 /* nextel_ptt_start.caf */,
+				D4B110022F02000100000001 /* motorola_ptt_end.caf */,
 				EA87281120A925B60015A7DF /* button_press.caf */,
 			);
 			path = audio;
@@ -454,6 +460,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D4B110032F02000100000001 /* nextel_ptt_start.caf in Resources */,
+				D4B110042F02000100000001 /* motorola_ptt_end.caf in Resources */,
 				EA87281E20A925C60015A7DF /* sonogram.png in Resources */,
 				EA87281C20A925C60015A7DF /* mute_on.png in Resources */,
 				EA87281220A925B60015A7DF /* button_press.caf in Resources */,
