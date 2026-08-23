@@ -182,6 +182,16 @@ import Network
         }
     }
 
+    /// Latency-sensitive motor-control lane. The connection coalesces queued
+    /// control updates to the newest snapshot while guaranteeing that a fresh
+    /// release/brake snapshot follows any already-in-flight movement frame.
+    @objc(sendControlWithData:)
+    public func sendControl(data: Data) {
+        performOnMain { [weak self] in
+            self?.connection?.sendControl(data: data)
+        }
+    }
+
     func didReceiveData(_ data: Data) {
         dataDelegate?.didReceiveData(data as NSData)
     }

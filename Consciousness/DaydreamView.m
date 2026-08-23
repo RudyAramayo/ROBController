@@ -304,6 +304,9 @@
     }
     [self updateJoystickValues];
     [self setNeedsDisplay];
+    if (self.joystickValuesDidChange != nil) {
+        self.joystickValuesDidChange(self.leftJoystick, self.rightJoystick);
+    }
 }
 
 - (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
@@ -317,6 +320,9 @@
     }
     [self updateJoystickValues];
     [self setNeedsDisplay];
+    if (self.joystickValuesDidChange != nil) {
+        self.joystickValuesDidChange(self.leftJoystick, self.rightJoystick);
+    }
 }
 
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
@@ -337,11 +343,17 @@
         [self updateJoystickValues];
         [self setNeedsDisplay];
     }
+    if (self.joystickValuesDidChange != nil) {
+        self.joystickValuesDidChange(self.leftJoystick, self.rightJoystick);
+    }
 }
 
 - (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
     [self resetJoysticks];
+    if (self.joystickValuesDidChange != nil) {
+        self.joystickValuesDidChange(self.leftJoystick, self.rightJoystick);
+    }
 }
 
 @end

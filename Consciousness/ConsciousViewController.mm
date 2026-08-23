@@ -104,6 +104,12 @@
 
 @property(nonatomic, strong) AutoNetClient *autoNetClient;
 @property(nonatomic, strong) ROBWatchRelay *watchRelay;
+@property(nonatomic, strong) NSTimer *treadControlHeartbeatTimer;
+@property(nonatomic, assign) NSTimeInterval lastTreadControlSendUptime;
+@property(nonatomic, assign) BOOL lastTreadInputWasActive;
+@property(nonatomic, assign) BOOL lastLeftTreadInputWasActive;
+@property(nonatomic, assign) BOOL lastRightTreadInputWasActive;
+@property(nonatomic, assign) uint64_t treadControlSequence;
 @property (readwrite, retain) IBOutlet UIView *chatConnectionStatus;
 @property (weak, nonatomic) IBOutlet UIButton *pairControllerButton;
 @property (weak, nonatomic) IBOutlet UIButton *autonomyModeButton;
@@ -175,6 +181,10 @@
 - (void)installTabbedInterface;
 - (void)setMicrophoneActiveAppearance:(BOOL)active;
 - (void)updateIPadCommandLayoutForSize:(CGSize)size;
+- (void)treadInputDidChangeLeft:(CGPoint)left right:(CGPoint)right;
+- (void)sendTreadControlSnapshot;
+- (void)sendTreadControlSnapshotImmediately;
+- (void)refreshTreadControlHeartbeat;
 
 @property (readwrite, assign) IBOutlet UIImageView *rpLidarMapView;
 @property (readwrite, retain) RPLidarMapController *rpLidarMapController;
@@ -1135,6 +1145,8 @@
     }
     self.daydreamView.leftJoystick = CGPointMake(-999, -999);
     self.daydreamView.rightJoystick = CGPointMake(-999, -999);
+    [self treadInputDidChangeLeft:self.daydreamView.leftJoystick
+                            right:self.daydreamView.rightJoystick];
     if (landscape) {
         [NSLayoutConstraint deactivateConstraints:self.iPadPortraitCommandConstraints];
         [NSLayoutConstraint activateConstraints:self.iPadLandscapeCommandConstraints];
@@ -1226,6 +1238,10 @@
     self.autonomyStatusDetail = @"Inactive — one operator tap starts a bounded social-roam session.";
     self.autonomyStartRequested = NO;
     [self installTabbedInterface];
+    __weak ConsciousViewController *weakSelfForTreads = self;
+    self.daydreamView.joystickValuesDidChange = ^(CGPoint left, CGPoint right) {
+        [weakSelfForTreads treadInputDidChangeLeft:left right:right];
+    };
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(applicationWillResignActive:)
                                                  name:UIApplicationWillResignActiveNotification
@@ -1401,6 +1417,122 @@
     self.safeToStartRecording = true;
     [self speechAudioInit];
     [self.languageTableView reloadData];
+}
+
+- (BOOL)treadPointIsActive:(CGPoint)point
+{
+    return isfinite(point.x) && isfinite(point.y) && point.x > -999.0 && point.y > -999.0;
+}
+
+- (BOOL)hasActiveTreadDemand
+{
+    return [self treadPointIsActive:self.daydreamView.leftJoystick]
+        || [self treadPointIsActive:self.daydreamView.rightJoystick]
+        || self.speed_PlayPause_toggle;
+}
+
+- (void)treadInputDidChangeLeft:(CGPoint)left right:(CGPoint)right
+{
+    BOOL active = [self treadPointIsActive:left] || [self treadPointIsActive:right]
+        || self.speed_PlayPause_toggle;
+    BOOL leftActive = [self treadPointIsActive:left];
+    BOOL rightActive = [self treadPointIsActive:right];
+    BOOL isBeginOrEndEdge = active != self.lastTreadInputWasActive
+        || leftActive != self.lastLeftTreadInputWasActive
+        || rightActive != self.lastRightTreadInputWasActive;
+    NSTimeInterval elapsed = NSProcessInfo.processInfo.systemUptime
+        - self.lastTreadControlSendUptime;
+
+    if (isBeginOrEndEdge || elapsed >= 0.09) {
+        [self sendTreadControlSnapshot];
+    }
+    [self refreshTreadControlHeartbeat];
+}
+
+- (void)refreshTreadControlHeartbeat
+{
+    if (![self hasActiveTreadDemand]) {
+        [self.treadControlHeartbeatTimer invalidate];
+        self.treadControlHeartbeatTimer = nil;
+        return;
+    }
+    if (self.treadControlHeartbeatTimer != nil) {
+        return;
+    }
+
+    __weak ConsciousViewController *weakSelf = self;
+    self.treadControlHeartbeatTimer = [NSTimer timerWithTimeInterval:0.05
+                                                            repeats:YES
+                                                              block:^(NSTimer *timer) {
+        ConsciousViewController *strongSelf = weakSelf;
+        if (strongSelf == nil || ![strongSelf hasActiveTreadDemand]) {
+            [timer invalidate];
+            strongSelf.treadControlHeartbeatTimer = nil;
+            return;
+        }
+        NSTimeInterval elapsed = NSProcessInfo.processInfo.systemUptime
+            - strongSelf.lastTreadControlSendUptime;
+        if (elapsed >= 0.09) {
+            [strongSelf sendTreadControlSnapshot];
+        }
+    }];
+    [[NSRunLoop mainRunLoop] addTimer:self.treadControlHeartbeatTimer
+                              forMode:NSRunLoopCommonModes];
+}
+
+- (void)sendTreadControlSnapshotImmediately
+{
+    [self sendTreadControlSnapshot];
+    [self refreshTreadControlHeartbeat];
+}
+
+- (void)sendTreadControlSnapshot
+{
+    CGPoint left = self.daydreamView.leftJoystick;
+    CGPoint right = self.daydreamView.rightJoystick;
+    BOOL leftActive = [self treadPointIsActive:left];
+    BOOL rightActive = [self treadPointIsActive:right];
+    BOOL active = leftActive || rightActive || self.speed_PlayPause_toggle;
+    self.lastTreadInputWasActive = active;
+    self.lastLeftTreadInputWasActive = leftActive;
+    self.lastRightTreadInputWasActive = rightActive;
+    self.lastTreadControlSendUptime = NSProcessInfo.processInfo.systemUptime;
+    self.treadControlSequence += 1;
+
+    NSString *senderID = [[[UIDevice currentDevice] identifierForVendor] UUIDString];
+    if (senderID.length == 0 || self.autoNetClient == nil) {
+        return;
+    }
+    uint64_t sentAtMilliseconds = (uint64_t)MAX(
+        0,
+        floor(NSDate.date.timeIntervalSince1970 * 1000.0)
+    );
+    NSDictionary *message = @{
+        @"message": @"ROBControllerTreadSnapshotV1",
+        @"sender": senderID,
+        @"controller.tread.version": @"1",
+        @"controller.tread.sequence": [NSString stringWithFormat:@"%llu", self.treadControlSequence],
+        @"controller.tread.sent_at_ms": [NSString stringWithFormat:@"%llu", sentAtMilliseconds],
+        @"controller.tread.left.active": leftActive ? @"1" : @"0",
+        @"controller.tread.left.x": [NSString stringWithFormat:@"%.5f", leftActive ? left.x : 0.0],
+        @"controller.tread.left.y": [NSString stringWithFormat:@"%.5f", leftActive ? left.y : 0.0],
+        @"controller.tread.right.active": rightActive ? @"1" : @"0",
+        @"controller.tread.right.x": [NSString stringWithFormat:@"%.5f", rightActive ? right.x : 0.0],
+        @"controller.tread.right.y": [NSString stringWithFormat:@"%.5f", rightActive ? right.y : 0.0],
+        @"controller.tread.speed": [NSString stringWithFormat:@"%.2f", self.speed],
+        @"controller.tread.brake_lock": self.tred_BRAKELOCK ? @"1" : @"0",
+        @"controller.tread.play": self.speed_PlayPause_toggle ? @"1" : @"0",
+        @"controller.tread.forward": self.speed_ForwardReverse_toggle ? @"1" : @"0"
+    };
+    NSError *error = nil;
+    NSData *data = [NSKeyedArchiver archivedDataWithRootObject:message
+                                         requiringSecureCoding:NO
+                                                         error:&error];
+    if (data == nil || error != nil) {
+        NSLog(@"Unable to encode prioritized tread snapshot: %@", error.localizedDescription);
+        return;
+    }
+    [self.autoNetClient sendControlWithData:data];
 }
 
 - (void) systemVolumeDidChange:(NSNotification *)notification {
@@ -2826,6 +2958,12 @@ didSelectDestinationLatitude:(double)latitude
     self.speechRecognitionGeneration += 1;
     [self stopSpeechRecognition];
     self.safeToStartRecording = true;
+    self.speed_PlayPause_toggle = false;
+    self.daydreamView.leftJoystick = CGPointMake(-999, -999);
+    self.daydreamView.rightJoystick = CGPointMake(-999, -999);
+    [self sendTreadControlSnapshotImmediately];
+    [self.treadControlHeartbeatTimer invalidate];
+    self.treadControlHeartbeatTimer = nil;
 }
 
 - (BOOL)robotActionMessageIsAddressedToThisController:(ROBRobotActionMessage *)message
@@ -3291,9 +3429,22 @@ didSelectDestinationLatitude:(double)latitude
 - (IBAction)lact_BACK_touchdown:(id)sender{ self.lact_BACK_isDown = true;}
 - (IBAction)lact_BACK_touchup:(id)sender{ self.lact_BACK_isDown = false;}
 
-- (IBAction)speed_REVERSE_toggle:(id)sender{ self.speed_ForwardReverse_toggle = false;}
-- (IBAction)speed_FORWARD_toggle:(id)sender{ self.speed_ForwardReverse_toggle = true;}
-- (IBAction)speed_slider_action:(UISlider *)sender{ self.speed = sender.value; }
+- (IBAction)speed_REVERSE_toggle:(id)sender
+{
+    self.speed_ForwardReverse_toggle = false;
+    [self sendTreadControlSnapshotImmediately];
+}
+- (IBAction)speed_FORWARD_toggle:(id)sender
+{
+    self.speed_ForwardReverse_toggle = true;
+    [self sendTreadControlSnapshotImmediately];
+}
+- (IBAction)speed_slider_action:(UISlider *)sender
+{
+    self.speed = sender.value;
+    [self treadInputDidChangeLeft:self.daydreamView.leftJoystick
+                            right:self.daydreamView.rightJoystick];
+}
 
 - (void) clampSpeed
 {
@@ -3305,14 +3456,42 @@ didSelectDestinationLatitude:(double)latitude
     self.speedSlider.value = self.speed;
 }
 
-- (IBAction)speed_reduce:(id)sender{ self.speed -= 10.0; [self clampSpeed];}
-- (IBAction)speed_increase:(id)sender{ self.speed += 10.0; [self clampSpeed];}
-- (IBAction)speed_10Percent:(id)sender{ self.speed = 10.0; [self clampSpeed];}
-- (IBAction)speed_max:(id)sender{ self.speed = 100.0; [self clampSpeed];}
-- (IBAction)speed_playpause_action:(id)sender{ self.speed_PlayPause_toggle = !self.speed_PlayPause_toggle;}
+- (IBAction)speed_reduce:(id)sender
+{
+    self.speed -= 10.0;
+    [self clampSpeed];
+    [self sendTreadControlSnapshotImmediately];
+}
+- (IBAction)speed_increase:(id)sender
+{
+    self.speed += 10.0;
+    [self clampSpeed];
+    [self sendTreadControlSnapshotImmediately];
+}
+- (IBAction)speed_10Percent:(id)sender
+{
+    self.speed = 10.0;
+    [self clampSpeed];
+    [self sendTreadControlSnapshotImmediately];
+}
+- (IBAction)speed_max:(id)sender
+{
+    self.speed = 100.0;
+    [self clampSpeed];
+    [self sendTreadControlSnapshotImmediately];
+}
+- (IBAction)speed_playpause_action:(id)sender
+{
+    self.speed_PlayPause_toggle = !self.speed_PlayPause_toggle;
+    [self sendTreadControlSnapshotImmediately];
+}
 
 - (IBAction)flipper_brakelock:(id)sender{ self.flipper_BRAKELOCK = !self.flipper_BRAKELOCK;}
-- (IBAction)tred_brakelock:(id)sender{ self.tred_BRAKELOCK = !self.tred_BRAKELOCK;}
+- (IBAction)tred_brakelock:(id)sender
+{
+    self.tred_BRAKELOCK = !self.tred_BRAKELOCK;
+    [self sendTreadControlSnapshotImmediately];
+}
 
 - (IBAction) toggleControllerView:(id)sender
 {
@@ -3335,6 +3514,7 @@ didSelectDestinationLatitude:(double)latitude
     [self stopSpeechRecognition];
     [self.robotActionExpiryTimer invalidate];
     [self.robotActionHelloTimer invalidate];
+    [self.treadControlHeartbeatTimer invalidate];
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 

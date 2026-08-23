@@ -24,11 +24,16 @@ final class AutoNetClientConnection {
 
     private static let authenticationTimeout: TimeInterval = 5
     private static let pairingHelloSize = 4_096
+    private static let networkProbeCapability = Data("ROBNET-PROBE-CAP-V1".utf8)
+    private static let networkProbePrefix = Data("ROBNET-PROBE-V1:".utf8)
 
     let nwConnection: NWConnection
     private let transportMode: AutoNetTransportMode
     private let credential: ROBControlCredential?
-    private let queue = DispatchQueue(label: "com.orbitusrobotics.robcontroller.transport")
+    private let queue = DispatchQueue(
+        label: "com.orbitusrobotics.robcontroller.transport",
+        qos: .userInteractive
+    )
 
     weak var delegate: AutoNetClientConnectionDelegate?
     var readinessDidChangeCallback: ((Bool) -> Void)?
@@ -39,6 +44,8 @@ final class AutoNetClientConnection {
     private var isReady = false
     private var isReceiving = false
     private var nextOutgoingSequence: UInt64 = 1
+    private var pendingControlData: Data?
+    private var controlSendIsInFlight = false
     private var authenticationState: AuthenticationState = .transportConnecting
     private var authenticationTimeoutWorkItem: DispatchWorkItem?
 
@@ -161,7 +168,11 @@ final class AutoNetClientConnection {
 
             switch messageType {
             case .sendData:
-                if !data.isEmpty { self.delegate?.didReceiveData(data) }
+                if self.isNetworkProbe(data) {
+                    self.echoNetworkProbe(data)
+                } else if !data.isEmpty {
+                    self.delegate?.didReceiveData(data)
+                }
             case .setAutomationScript:
                 print("client: setAutomationScript is not implemented")
             case .pairingChallenge, .pairingProof, .pairingAccepted, .pairingRejected,
@@ -209,11 +220,36 @@ final class AutoNetClientConnection {
             authenticationTimeoutWorkItem = nil
             authenticationState = .authenticated
             setReady(true)
+            announceNetworkProbeCapability()
             print("client: Cerebro certificate pin and pairing proof accepted")
             receiveNextMessage()
 
         case .transportConnecting, .authenticated, .stopped:
             stopLocked(error: NWError.posix(.EPROTO))
+        }
+    }
+
+    private func announceNetworkProbeCapability() {
+        sendFrame(
+            type: .sendData,
+            data: Self.networkProbeCapability,
+            identifier: "NetworkProbeCapability"
+        ) { [weak self] error in
+            if let error { self?.stopLocked(error: error) }
+        }
+    }
+
+    private func isNetworkProbe(_ data: Data) -> Bool {
+        let nonceBytes = data.dropFirst(Self.networkProbePrefix.count)
+        guard data.starts(with: Self.networkProbePrefix), nonceBytes.count == 36,
+              let nonceText = String(data: nonceBytes, encoding: .utf8),
+              UUID(uuidString: nonceText) != nil else { return false }
+        return true
+    }
+
+    private func echoNetworkProbe(_ data: Data) {
+        sendFrame(type: .sendData, data: data, identifier: "NetworkProbeEcho") { [weak self] error in
+            if let error { self?.stopLocked(error: error) }
         }
     }
 
@@ -234,6 +270,54 @@ final class AutoNetClientConnection {
             }
             self.sendFrame(type: .sendData, data: data, identifier: "SendData-\(sequence)") { [weak self] error in
                 if let error { self?.stopLocked(error: error) }
+            }
+        }
+    }
+
+    func sendControl(data: Data) {
+        queue.async(qos: .userInteractive, flags: .enforceQoS) { [weak self] in
+            guard let self, self.isReady, !self.isStopped else { return }
+            guard !data.isEmpty, data.count <= 64 * 1024 else {
+                print("client: refusing invalid control message of \(data.count) bytes")
+                return
+            }
+            // Continuous joystick movement can produce input faster than the
+            // robot's 10 Hz motor loop. Retain only the newest unsent state.
+            self.pendingControlData = data
+            self.sendPendingControlIfNeededLocked()
+        }
+    }
+
+    private func sendPendingControlIfNeededLocked() {
+        dispatchPrecondition(condition: .onQueue(queue))
+        guard !controlSendIsInFlight,
+              let data = pendingControlData,
+              isReady,
+              !isStopped else { return }
+
+        pendingControlData = nil
+        controlSendIsInFlight = true
+        let sequence = nextOutgoingSequence
+        if case .v2 = transportMode {
+            guard sequence > 0 else {
+                stopLocked(error: NWError.posix(.EOVERFLOW))
+                return
+            }
+            nextOutgoingSequence &+= 1
+        }
+        sendFrame(
+            type: .sendData,
+            data: data,
+            identifier: "TreadControl-\(sequence)"
+        ) { [weak self] error in
+            guard let self else { return }
+            self.queue.async(qos: .userInteractive, flags: .enforceQoS) {
+                self.controlSendIsInFlight = false
+                if let error {
+                    self.stopLocked(error: error)
+                } else {
+                    self.sendPendingControlIfNeededLocked()
+                }
             }
         }
     }
@@ -264,6 +348,8 @@ final class AutoNetClientConnection {
         authenticationTimeoutWorkItem?.cancel()
         authenticationTimeoutWorkItem = nil
         isReceiving = false
+        pendingControlData = nil
+        controlSendIsInFlight = false
         setReady(false)
         nwConnection.stateUpdateHandler = nil
         nwConnection.cancel()

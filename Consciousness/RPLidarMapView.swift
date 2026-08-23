@@ -21,6 +21,99 @@ public protocol ROBOpenStreetMapViewDelegate: NSObjectProtocol {
     )
 }
 
+private enum ROBBaseMapStyle: String, CaseIterable {
+    case navigation
+    case terrain
+    case satellite
+
+    var title: String {
+        switch self {
+        case .navigation: return "Navigation"
+        case .terrain: return "Terrain"
+        case .satellite: return "Satellite"
+        }
+    }
+
+    var attribution: String? {
+        switch self {
+        case .navigation:
+            return "© OpenStreetMap contributors"
+        case .terrain:
+            return "Map © OpenStreetMap • Style © OpenTopoMap"
+        case .satellite:
+            return nil
+        }
+    }
+
+    var tileURLTemplate: String? {
+        switch self {
+        case .navigation:
+            return "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        case .terrain:
+            return "https://tile.opentopomap.org/{z}/{x}/{y}.png"
+        case .satellite:
+            return nil
+        }
+    }
+}
+
+private enum ROBBaseMapStyleStore {
+    private static let key = "ROBController.OpenStreetMap.BaseMapStyle.v1"
+
+    static func load(defaults: UserDefaults = .standard) -> ROBBaseMapStyle {
+        defaults.string(forKey: key).flatMap(ROBBaseMapStyle.init(rawValue:))
+            ?? .navigation
+    }
+
+    static func save(_ style: ROBBaseMapStyle, defaults: UserDefaults = .standard) {
+        defaults.set(style.rawValue, forKey: key)
+    }
+}
+
+private struct ROBLidarOverlayCalibration {
+    static let defaultScale = 0.90
+    static let `default` = ROBLidarOverlayCalibration(scale: defaultScale, northRotationDegrees: 0)
+
+    let scale: Double
+    let northRotationDegrees: Double
+
+    init(scale: Double, northRotationDegrees: Double) {
+        self.scale = min(max(scale.isFinite ? scale : Self.defaultScale, 0.50), 1.50)
+        var rotation = (northRotationDegrees.isFinite ? northRotationDegrees : 0)
+            .truncatingRemainder(dividingBy: 360)
+        if rotation >= 180 { rotation -= 360 }
+        if rotation < -180 { rotation += 360 }
+        self.northRotationDegrees = rotation
+    }
+
+    var northRotationRadians: Double {
+        northRotationDegrees * .pi / 180
+    }
+}
+
+private enum ROBLidarOverlayCalibrationStore {
+    private static let scaleKey = "ROBController.OpenStreetMap.OverlayScale.v1"
+    private static let rotationKey = "ROBController.OpenStreetMap.NorthRotationDegrees.v1"
+
+    static func load(defaults: UserDefaults = .standard) -> ROBLidarOverlayCalibration {
+        let scale = defaults.object(forKey: scaleKey) == nil
+            ? ROBLidarOverlayCalibration.default.scale
+            : defaults.double(forKey: scaleKey)
+        let rotation = defaults.object(forKey: rotationKey) == nil
+            ? ROBLidarOverlayCalibration.default.northRotationDegrees
+            : defaults.double(forKey: rotationKey)
+        return ROBLidarOverlayCalibration(scale: scale, northRotationDegrees: rotation)
+    }
+
+    static func save(
+        _ calibration: ROBLidarOverlayCalibration,
+        defaults: UserDefaults = .standard
+    ) {
+        defaults.set(calibration.scale, forKey: scaleKey)
+        defaults.set(calibration.northRotationDegrees, forKey: rotationKey)
+    }
+}
+
 /// An OpenStreetMap-backed navigation surface which keeps ROB's local lidar
 /// frame registered to the robot's current geographic position. At street
 /// level the scan and occupancy image become readable; when zoomed out the map
@@ -33,6 +126,7 @@ public final class ROBOpenStreetMapView: UIView, MKMapViewDelegate, UIGestureRec
     private let lidarView = ROBLidarGeographicOverlayView(frame: .zero)
     private let recenterButton = UIButton(type: .system)
     private let searchButton = UIButton(type: .system)
+    private let mapStyleButton = UIButton(type: .system)
     private let instructionLabel = UILabel(frame: .zero)
     private let attributionLabel = UILabel(frame: .zero)
     private let scanStatusLabel = UILabel(frame: .zero)
@@ -42,6 +136,9 @@ public final class ROBOpenStreetMapView: UIView, MKMapViewDelegate, UIGestureRec
     private var hasCenteredOnRobot = false
     private var lidarReturnCount = 0
     private var hasOccupancyMap = false
+    private var baseMapStyle = ROBBaseMapStyleStore.load()
+    private var baseTileOverlay: MKTileOverlay?
+    private var overlayCalibration = ROBLidarOverlayCalibrationStore.load()
 
     public override init(frame: CGRect) {
         super.init(frame: frame)
@@ -67,18 +164,12 @@ public final class ROBOpenStreetMapView: UIView, MKMapViewDelegate, UIGestureRec
         mapView.pointOfInterestFilter = .excludingAll
         addSubview(mapView)
 
-        let openStreetMap = MKTileOverlay(
-            urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-        )
-        openStreetMap.tileSize = CGSize(width: 256, height: 256)
-        openStreetMap.minimumZ = 1
-        openStreetMap.maximumZ = 19
-        openStreetMap.canReplaceMapContent = true
-        mapView.addOverlay(openStreetMap, level: .aboveLabels)
+        applyBaseMapStyle(baseMapStyle, persist: false)
 
         lidarView.translatesAutoresizingMaskIntoConstraints = false
         lidarView.isUserInteractionEnabled = false
         lidarView.mapView = mapView
+        lidarView.calibration = overlayCalibration
         addSubview(lidarView)
 
         configureMapButton(
@@ -93,6 +184,15 @@ public final class ROBOpenStreetMapView: UIView, MKMapViewDelegate, UIGestureRec
             symbol: "location.fill",
             action: #selector(recenterPressed)
         )
+        configureMapButton(
+            mapStyleButton,
+            title: "",
+            symbol: "map.fill",
+            action: #selector(mapStylePressed)
+        )
+        mapStyleButton.accessibilityLabel = "Map and lidar settings"
+        mapStyleButton.showsMenuAsPrimaryAction = true
+        rebuildMapSettingsMenu()
 
         scanStatusLabel.translatesAutoresizingMaskIntoConstraints = false
         scanStatusLabel.text = "LIDAR / AWAITING LOCAL FRAME"
@@ -119,7 +219,8 @@ public final class ROBOpenStreetMapView: UIView, MKMapViewDelegate, UIGestureRec
         addSubview(instructionLabel)
 
         attributionLabel.translatesAutoresizingMaskIntoConstraints = false
-        attributionLabel.text = "© OpenStreetMap contributors"
+        attributionLabel.text = baseMapStyle.attribution
+        attributionLabel.isHidden = baseMapStyle.attribution == nil
         attributionLabel.font = .preferredFont(forTextStyle: .caption2)
         attributionLabel.textColor = UIColor.white.withAlphaComponent(0.72)
         attributionLabel.backgroundColor = UIColor(red: 0.02, green: 0.027, blue: 0.031, alpha: 0.82)
@@ -150,6 +251,14 @@ public final class ROBOpenStreetMapView: UIView, MKMapViewDelegate, UIGestureRec
             recenterButton.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -12),
             recenterButton.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor, constant: 10),
             recenterButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 42),
+
+            mapStyleButton.trailingAnchor.constraint(
+                equalTo: recenterButton.leadingAnchor,
+                constant: -8
+            ),
+            mapStyleButton.topAnchor.constraint(equalTo: recenterButton.topAnchor),
+            mapStyleButton.widthAnchor.constraint(equalToConstant: 44),
+            mapStyleButton.heightAnchor.constraint(equalTo: recenterButton.heightAnchor),
 
             scanStatusLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
             scanStatusLabel.topAnchor.constraint(equalTo: searchButton.bottomAnchor, constant: 6),
@@ -194,6 +303,110 @@ public final class ROBOpenStreetMapView: UIView, MKMapViewDelegate, UIGestureRec
         addSubview(button)
     }
 
+    private func rebuildMapSettingsMenu() {
+        let baseMapMenu = UIMenu(
+            title: "Base Map",
+            children: ROBBaseMapStyle.allCases.map { style in
+                UIAction(
+                    title: style.title,
+                    state: style == baseMapStyle ? .on : .off
+                ) { [weak self] _ in
+                    self?.applyBaseMapStyle(style, persist: true)
+                }
+            }
+        )
+        let scaleValues = [0.75, 0.80, 0.85, 0.90, 0.95, 1.00, 1.10, 1.25]
+        let scaleMenu = UIMenu(
+            title: String(
+                format: "Overlay Scale — %d%%",
+                Int((overlayCalibration.scale * 100).rounded())
+            ),
+            children: scaleValues.map { scale in
+                UIAction(
+                    title: String(format: "%d%%", Int((scale * 100).rounded())),
+                    state: abs(scale - overlayCalibration.scale) < 0.005 ? .on : .off
+                ) { [weak self] _ in
+                    self?.setOverlayCalibration(
+                        ROBLidarOverlayCalibration(
+                            scale: scale,
+                            northRotationDegrees: self?.overlayCalibration.northRotationDegrees ?? 0
+                        )
+                    )
+                }
+            }
+        )
+        let northMenu = UIMenu(
+            title: String(
+                format: "North Rotation — %+.0f°",
+                overlayCalibration.northRotationDegrees
+            ),
+            children: [
+                UIAction(title: "Rotate Left 5°", image: UIImage(systemName: "rotate.left")) {
+                    [weak self] _ in self?.adjustNorthRotation(by: -5)
+                },
+                UIAction(title: "Rotate Right 5°", image: UIImage(systemName: "rotate.right")) {
+                    [weak self] _ in self?.adjustNorthRotation(by: 5)
+                },
+                UIAction(title: "Reset North") { [weak self] _ in
+                    guard let self else { return }
+                    self.setOverlayCalibration(
+                        ROBLidarOverlayCalibration(
+                            scale: self.overlayCalibration.scale,
+                            northRotationDegrees: 0
+                        )
+                    )
+                }
+            ]
+        )
+        mapStyleButton.menu = UIMenu(
+            title: "Map Settings",
+            children: [baseMapMenu, scaleMenu, northMenu]
+        )
+    }
+
+    private func adjustNorthRotation(by degrees: Double) {
+        setOverlayCalibration(
+            ROBLidarOverlayCalibration(
+                scale: overlayCalibration.scale,
+                northRotationDegrees: overlayCalibration.northRotationDegrees + degrees
+            )
+        )
+    }
+
+    private func setOverlayCalibration(_ calibration: ROBLidarOverlayCalibration) {
+        overlayCalibration = calibration
+        ROBLidarOverlayCalibrationStore.save(calibration)
+        lidarView.calibration = calibration
+        refreshScanStatus()
+        rebuildMapSettingsMenu()
+        lidarView.setNeedsDisplay()
+    }
+
+    private func applyBaseMapStyle(_ style: ROBBaseMapStyle, persist: Bool) {
+        if let baseTileOverlay {
+            mapView.removeOverlay(baseTileOverlay)
+        }
+        baseMapStyle = style
+        baseTileOverlay = nil
+        mapView.mapType = style == .satellite ? .satellite : .standard
+        if let template = style.tileURLTemplate {
+            let overlay = MKTileOverlay(urlTemplate: template)
+            overlay.tileSize = CGSize(width: 256, height: 256)
+            overlay.minimumZ = 1
+            overlay.maximumZ = style == .terrain ? 17 : 19
+            overlay.canReplaceMapContent = true
+            mapView.addOverlay(overlay, level: .aboveLabels)
+            baseTileOverlay = overlay
+        }
+        attributionLabel.text = style.attribution
+        attributionLabel.isHidden = style.attribution == nil
+        if persist {
+            ROBBaseMapStyleStore.save(style)
+        }
+        rebuildMapSettingsMenu()
+        lidarView.setNeedsDisplay()
+    }
+
     @objc(updateRobotLatitude:longitude:)
     public func updateRobot(latitude: Double, longitude: Double) {
         let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
@@ -229,7 +442,13 @@ public final class ROBOpenStreetMapView: UIView, MKMapViewDelegate, UIGestureRec
 
     private func refreshScanStatus() {
         let gridState = hasOccupancyMap ? "GRID LIVE" : "NO GRID"
-        scanStatusLabel.text = String(format: "LIDAR / %04d RETURNS / %@", lidarReturnCount, gridState)
+        scanStatusLabel.text = String(
+            format: "LIDAR / %04d / %@ / %d%% / N%+.0f°",
+            lidarReturnCount,
+            gridState,
+            Int((overlayCalibration.scale * 100).rounded()),
+            overlayCalibration.northRotationDegrees
+        )
     }
 
     @objc(showDestinationWithLatitude:longitude:title:)
@@ -267,6 +486,8 @@ public final class ROBOpenStreetMapView: UIView, MKMapViewDelegate, UIGestureRec
     @objc private func searchPressed() {
         mapDelegate?.openStreetMapViewDidRequestSearch(self)
     }
+
+    @objc private func mapStylePressed() {}
 
     @objc private func mapTapped(_ recognizer: UITapGestureRecognizer) {
         guard recognizer.state == .ended else { return }
@@ -331,6 +552,7 @@ private final class ROBLidarGeographicOverlayView: UIView {
     weak var mapView: MKMapView?
     var robotCoordinate: CLLocationCoordinate2D?
     var occupancyMapImage: UIImage?
+    var calibration = ROBLidarOverlayCalibrationStore.load()
     private var samples: [Sample] = []
     private var headingRadians: Double = 0
 
@@ -381,9 +603,10 @@ private final class ROBLidarGeographicOverlayView: UIView {
         for sample in samples {
             // RPLidar uses zero straight ahead. Rotate that local frame by ROB's
             // map heading before projecting metres into geographic coordinates.
-            let theta = sample.angleRadians + headingRadians
-            let north = cos(theta) * sample.distanceMeters
-            let east = sin(theta) * sample.distanceMeters
+            let theta = sample.angleRadians + headingRadians + calibration.northRotationRadians
+            let calibratedDistance = sample.distanceMeters * calibration.scale
+            let north = cos(theta) * calibratedDistance
+            let east = sin(theta) * calibratedDistance
             let coordinate = offsetCoordinate(
                 from: robotCoordinate,
                 eastMeters: east,
@@ -409,8 +632,17 @@ private final class ROBLidarGeographicOverlayView: UIView {
         // The legacy occupancy payload does not include a map resolution or
         // origin. Keep its historical 20 m local window centered on ROB until
         // Cerebro starts publishing calibrated map metadata.
-        let eastEdge = offsetCoordinate(from: robotCoordinate, eastMeters: 10, northMeters: 0)
-        let northEdge = offsetCoordinate(from: robotCoordinate, eastMeters: 0, northMeters: 10)
+        let halfExtentMeters = 10 * calibration.scale
+        let eastEdge = offsetCoordinate(
+            from: robotCoordinate,
+            eastMeters: halfExtentMeters,
+            northMeters: 0
+        )
+        let northEdge = offsetCoordinate(
+            from: robotCoordinate,
+            eastMeters: 0,
+            northMeters: halfExtentMeters
+        )
         let eastPoint = mapView.convert(eastEdge, toPointTo: self)
         let northPoint = mapView.convert(northEdge, toPointTo: self)
         let halfWidth = abs(eastPoint.x - center.x)
@@ -419,7 +651,7 @@ private final class ROBLidarGeographicOverlayView: UIView {
 
         context.saveGState()
         context.translateBy(x: center.x, y: center.y)
-        context.rotate(by: CGFloat(headingRadians))
+        context.rotate(by: CGFloat(headingRadians + calibration.northRotationRadians))
         context.setAlpha(0.38)
         occupancyMapImage.draw(
             in: CGRect(x: -halfWidth, y: -halfHeight, width: halfWidth * 2, height: halfHeight * 2),
