@@ -7,15 +7,7 @@
 //
 
 #import <UIKit/UIKit.h>
-@class EAGLView;
 
 @interface AppDelegate : UIResponder <UIApplicationDelegate>
-{
-    IBOutlet EAGLView       *view;
-}
-@property (strong, nonatomic) UIWindow      *window;
-@property (nonatomic, retain) EAGLView      *view;
-
 
 @end
-
