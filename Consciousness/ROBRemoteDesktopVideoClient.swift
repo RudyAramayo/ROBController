@@ -3,6 +3,42 @@ import Foundation
 import Network
 import Security
 
+enum ROBRemoteDesktopVideoQuality: Int, CaseIterable {
+    case maximumDetail
+    case fast
+
+    var displayName: String {
+        switch self {
+        case .maximumDetail: return "MAX DETAIL"
+        case .fast: return "FAST"
+        }
+    }
+
+    var controlTitle: String {
+        switch self {
+        case .maximumDetail: return "Max Detail"
+        case .fast: return "Fast"
+        }
+    }
+
+    var subscriptionLimits: (
+        maximumWidth: UInt16,
+        maximumHeight: UInt16,
+        maximumFramesPerSecond: UInt16,
+        maximumBitrate: UInt32
+    ) {
+        switch self {
+        case .maximumDetail:
+            return (4_096, 2_160, 2, 40_000_000)
+        case .fast:
+            return (960, 540, 8, 1_500_000)
+        }
+    }
+}
+
+private let desktopMaximumJPEGBytes = 8 * 1_024 * 1_024
+private let desktopMaximumFrameBytes = desktopMaximumJPEGBytes + 92
+
 protocol ROBRemoteDesktopVideoClientDelegate: AnyObject {
     func remoteDesktopVideoClient(_ client: ROBRemoteDesktopVideoClient, didReceiveJPEG data: Data)
     func remoteDesktopVideoClient(_ client: ROBRemoteDesktopVideoClient, didChangeStatus status: String)
@@ -25,7 +61,7 @@ final class ROBRemoteDesktopVideoClient {
     private static let serviceType = "_robvideo._udp"
     private static let applicationProtocol = "robvideo/1"
     private static let protocolVersion: UInt8 = 1
-    private static let maximumFrameBytes = (2 * 1_024 * 1_024) + 92
+    private static let maximumFrameBytes = desktopMaximumFrameBytes
     private static let verifyQueue = DispatchQueue(
         label: "com.orbitusrobotics.robcontroller.desktop.tls-verify"
     )
@@ -46,8 +82,9 @@ final class ROBRemoteDesktopVideoClient {
     private var reconnectAttempt = 0
     private var reconnectWorkItem: DispatchWorkItem?
     private var lastMediaSequence: UInt64 = 0
+    private var quality: ROBRemoteDesktopVideoQuality = .maximumDetail
 
-    func start(controlSessionID: UUID) {
+    func start(controlSessionID: UUID, quality: ROBRemoteDesktopVideoQuality) {
         queue.async { [weak self] in
             guard let self else { return }
             self.stopLocked(publish: false)
@@ -59,6 +96,7 @@ final class ROBRemoteDesktopVideoClient {
             }
             self.controlSessionID = controlSessionID
             self.subscriptionID = UUID()
+            self.quality = quality
             self.wantsStarted = true
             self.reconnectAttempt = 0
             self.beginBrowsing()
@@ -238,7 +276,9 @@ final class ROBRemoteDesktopVideoClient {
                 phase = .streaming
                 reconnectAttempt = 0
                 lastMediaSequence = 0
-                publish("LIVE • \(stream.width)×\(stream.height) • secure desktop")
+                publish(
+                    "LIVE • \(quality.displayName) • \(stream.width)×\(stream.height) @ \(stream.framesPerSecond) FPS"
+                )
 
             case .streaming:
                 switch type {
@@ -275,6 +315,7 @@ final class ROBRemoteDesktopVideoClient {
         guard let controlSessionID, let subscriptionID else {
             throw DesktopVideoError.authentication
         }
+        let limits = quality.subscriptionLimits
         let request = DesktopSubscriptionRequest(
             protocolVersion: Self.protocolVersion,
             sessionID: controlSessionID,
@@ -282,10 +323,10 @@ final class ROBRemoteDesktopVideoClient {
             cameraID: "desktop",
             preferredCodecs: ["jpeg"],
             constraints: .init(
-                maximumWidth: 960,
-                maximumHeight: 540,
-                maximumFramesPerSecond: 6,
-                maximumBitrate: 1_500_000
+                maximumWidth: limits.maximumWidth,
+                maximumHeight: limits.maximumHeight,
+                maximumFramesPerSecond: limits.maximumFramesPerSecond,
+                maximumBitrate: limits.maximumBitrate
             ),
             delivery: "jpegFrames"
         )
@@ -589,7 +630,7 @@ private struct DesktopJPEGAccessUnit {
         let sequence = data.desktopUInt64(at: 48)
         let jpeg = Data(data.dropFirst(92))
         guard sequence > previousSequence,
-              jpeg.count <= 2 * 1_024 * 1_024,
+              jpeg.count <= desktopMaximumJPEGBytes,
               jpeg.prefix(2) == Data([0xff, 0xd8]),
               jpeg.suffix(2) == Data([0xff, 0xd9]) else {
             throw DesktopVideoError.invalidMessage
@@ -641,7 +682,7 @@ private final class ROBRemoteDesktopVideoFramer: NWProtocolFramerImplementation 
         guard type != .invalid,
               nextOutputSequence < UInt64.max,
               messageLength >= 0,
-              messageLength <= (type.isMedia ? (2 * 1_024 * 1_024) + 92 : 64 * 1_024) else {
+              messageLength <= (type.isMedia ? desktopMaximumFrameBytes : 64 * 1_024) else {
             framer.markFailed(error: NWError.posix(.EMSGSIZE))
             return
         }
@@ -685,7 +726,7 @@ private final class ROBRemoteDesktopVideoFramer: NWProtocolFramerImplementation 
                 return 0
             }
             let length = Int(header.desktopUInt32(at: 8))
-            let limit = type.isMedia ? (2 * 1_024 * 1_024) + 92 : 64 * 1_024
+            let limit = type.isMedia ? desktopMaximumFrameBytes : 64 * 1_024
             guard length <= limit else {
                 framer.markFailed(error: NWError.posix(.EMSGSIZE))
                 return 0

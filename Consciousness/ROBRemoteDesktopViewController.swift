@@ -10,11 +10,17 @@ import UIKit
     private var inputStatus = "Open Admin → Desktop to request access."
     private var inputControlAvailable = false
     private var latestNormalizedPoint = CGPoint(x: 0.5, y: 0.5)
+    private var videoQuality = ROBRemoteDesktopVideoQuality(
+        rawValue: UserDefaults.standard.integer(forKey: "ROBRemoteDesktop.videoQuality")
+    ) ?? .maximumDetail
 
     private let statusPill = UILabel()
     private let detailLabel = UILabel()
     private let retryButton = UIButton(type: .system)
     private let modeControl = UISegmentedControl(items: ["Control", "Pan / Zoom"])
+    private let qualityControl = UISegmentedControl(
+        items: ROBRemoteDesktopVideoQuality.allCases.map(\.controlTitle)
+    )
     private let scrollView = UIScrollView()
     private let imageView = UIImageView()
     private let placeholderLabel = UILabel()
@@ -123,12 +129,28 @@ import UIKit
         modeControl.setTitleTextAttributes([.font: UIFont.monospacedSystemFont(ofSize: 11, weight: .semibold)], for: .normal)
         modeControl.accessibilityIdentifier = "remoteDesktopInteractionMode"
         modeControl.addTarget(self, action: #selector(modeChanged), for: .valueChanged)
-        header.addSubview(modeControl)
+
+        qualityControl.translatesAutoresizingMaskIntoConstraints = false
+        qualityControl.selectedSegmentIndex = videoQuality.rawValue
+        qualityControl.setTitleTextAttributes(
+            [.font: UIFont.monospacedSystemFont(ofSize: 11, weight: .semibold)],
+            for: .normal
+        )
+        qualityControl.accessibilityLabel = "Desktop video quality"
+        qualityControl.accessibilityIdentifier = "remoteDesktopVideoQuality"
+        qualityControl.addTarget(self, action: #selector(qualityChanged), for: .valueChanged)
+
+        let desktopControls = UIStackView(arrangedSubviews: [qualityControl, modeControl])
+        desktopControls.translatesAutoresizingMaskIntoConstraints = false
+        desktopControls.axis = .horizontal
+        desktopControls.distribution = .fillEqually
+        desktopControls.spacing = 8
+        header.addSubview(desktopControls)
 
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.delegate = self
         scrollView.minimumZoomScale = 1
-        scrollView.maximumZoomScale = 4
+        scrollView.maximumZoomScale = 12
         scrollView.bouncesZoom = true
         scrollView.backgroundColor = .black
         scrollView.layer.borderColor = UIColor.white.withAlphaComponent(0.1).cgColor
@@ -228,7 +250,7 @@ import UIKit
             header.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             header.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             header.topAnchor.constraint(equalTo: safe.topAnchor),
-            header.heightAnchor.constraint(equalToConstant: 92),
+            header.heightAnchor.constraint(equalToConstant: 126),
 
             title.leadingAnchor.constraint(equalTo: header.leadingAnchor, constant: 14),
             title.topAnchor.constraint(equalTo: header.topAnchor, constant: 9),
@@ -241,11 +263,13 @@ import UIKit
             retryButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 44),
             retryButton.heightAnchor.constraint(equalToConstant: 34),
             detailLabel.leadingAnchor.constraint(equalTo: title.leadingAnchor),
-            detailLabel.trailingAnchor.constraint(equalTo: modeControl.leadingAnchor, constant: -10),
-            detailLabel.bottomAnchor.constraint(equalTo: header.bottomAnchor, constant: -8),
-            modeControl.trailingAnchor.constraint(equalTo: retryButton.trailingAnchor),
-            modeControl.bottomAnchor.constraint(equalTo: header.bottomAnchor, constant: -8),
-            modeControl.widthAnchor.constraint(equalToConstant: 184),
+            detailLabel.trailingAnchor.constraint(equalTo: retryButton.trailingAnchor),
+            detailLabel.topAnchor.constraint(equalTo: retryButton.bottomAnchor, constant: 2),
+            detailLabel.bottomAnchor.constraint(lessThanOrEqualTo: desktopControls.topAnchor, constant: -5),
+            desktopControls.leadingAnchor.constraint(equalTo: title.leadingAnchor),
+            desktopControls.trailingAnchor.constraint(equalTo: retryButton.trailingAnchor),
+            desktopControls.bottomAnchor.constraint(equalTo: header.bottomAnchor, constant: -7),
+            desktopControls.heightAnchor.constraint(equalToConstant: 32),
 
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -291,7 +315,7 @@ import UIKit
         }
         inputControlAvailable = false
         send(kind: .start)
-        videoClient.start(controlSessionID: sessionID)
+        videoClient.start(controlSessionID: sessionID, quality: videoQuality)
     }
 
     private func consumeStatus(_ status: String) {
@@ -324,6 +348,19 @@ import UIKit
 
     @objc private func modeChanged() {
         updateInteractionMode()
+    }
+
+    @objc private func qualityChanged() {
+        guard let selected = ROBRemoteDesktopVideoQuality(
+            rawValue: qualityControl.selectedSegmentIndex
+        ) else { return }
+        videoQuality = selected
+        UserDefaults.standard.set(selected.rawValue, forKey: "ROBRemoteDesktop.videoQuality")
+        guard connectionAvailable, isDesktopVisible,
+              let sessionID = autoNetClient?.authenticatedSessionID else { return }
+        videoStatus = "SWITCHING TO \(selected.displayName)…"
+        refreshStatus()
+        videoClient.start(controlSessionID: sessionID, quality: selected)
     }
 
     private func updateInteractionMode() {

@@ -17,6 +17,13 @@ assert 'UISegmentedControl(items: ["Terminal", "Desktop"])' in workspace
 assert "authenticatedSessionID" in control_client and "authenticationHello" in client
 assert "SecTrustCopyCertificateChain" in client and "certificateSHA256" in client
 assert 'cameraID: "desktop"' in client and 'preferredCodecs: ["jpeg"]' in client
+assert 'case maximumDetail' in client and 'case fast' in client
+assert 'return (4_096, 2_160, 2, 40_000_000)' in client
+assert 'return (960, 540, 8, 1_500_000)' in client
+assert 'desktopMaximumJPEGBytes = 8 * 1_024 * 1_024' in client
+assert 'remoteDesktopVideoQuality' in view and 'qualityChanged' in view
+assert 'videoClient.start(controlSessionID: sessionID, quality:' in view
+assert 'scrollView.maximumZoomScale = 12' in view
 assert "UIPanGestureRecognizer" in view and "UILongPressGestureRecognizer" in view
 assert "primaryDown" in view and "primaryUp" in view and "secondaryClick" in view
 assert "remoteDesktopTextInput" in view and "sendTextPressed" in view
