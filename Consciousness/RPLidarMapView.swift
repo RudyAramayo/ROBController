@@ -120,6 +120,8 @@ private enum ROBLidarOverlayCalibrationStore {
 /// remains useful for picking a navigation destination.
 @objc(ROBOpenStreetMapView)
 public final class ROBOpenStreetMapView: UIView, MKMapViewDelegate, UIGestureRecognizerDelegate {
+    private static let closestCameraDistance: CLLocationDistance = 1
+
     @objc public weak var mapDelegate: ROBOpenStreetMapViewDelegate?
 
     private let mapView = MKMapView(frame: .zero)
@@ -139,6 +141,8 @@ public final class ROBOpenStreetMapView: UIView, MKMapViewDelegate, UIGestureRec
     private var baseMapStyle = ROBBaseMapStyleStore.load()
     private var baseTileOverlay: MKTileOverlay?
     private var overlayCalibration = ROBLidarOverlayCalibrationStore.load()
+    private var pendingStyleCamera: MKMapCamera?
+    private var styleCameraRestoreGeneration = 0
 
     public override init(frame: CGRect) {
         super.init(frame: frame)
@@ -162,6 +166,7 @@ public final class ROBOpenStreetMapView: UIView, MKMapViewDelegate, UIGestureRec
         mapView.showsCompass = true
         mapView.showsScale = true
         mapView.pointOfInterestFilter = .excludingAll
+        enableClosestMapZoom()
         addSubview(mapView)
 
         applyBaseMapStyle(baseMapStyle, persist: false)
@@ -383,12 +388,14 @@ public final class ROBOpenStreetMapView: UIView, MKMapViewDelegate, UIGestureRec
     }
 
     private func applyBaseMapStyle(_ style: ROBBaseMapStyle, persist: Bool) {
+        let preservedCamera = persist ? mapView.camera.copy() as? MKMapCamera : nil
         if let baseTileOverlay {
             mapView.removeOverlay(baseTileOverlay)
         }
         baseMapStyle = style
         baseTileOverlay = nil
         mapView.mapType = style == .satellite ? .satellite : .standard
+        enableClosestMapZoom()
         if let template = style.tileURLTemplate {
             let overlay = MKTileOverlay(urlTemplate: template)
             overlay.tileSize = CGSize(width: 256, height: 256)
@@ -403,8 +410,36 @@ public final class ROBOpenStreetMapView: UIView, MKMapViewDelegate, UIGestureRec
         if persist {
             ROBBaseMapStyleStore.save(style)
         }
+        restoreCameraAfterStyleChange(preservedCamera)
         rebuildMapSettingsMenu()
         lidarView.setNeedsDisplay()
+    }
+
+    private func enableClosestMapZoom() {
+        guard let zoomRange = MKMapView.CameraZoomRange(
+            minCenterCoordinateDistance: Self.closestCameraDistance
+        ) else { return }
+        mapView.setCameraZoomRange(zoomRange, animated: false)
+    }
+
+    private func restoreCameraAfterStyleChange(_ camera: MKMapCamera?) {
+        guard let camera else { return }
+        styleCameraRestoreGeneration &+= 1
+        let generation = styleCameraRestoreGeneration
+        pendingStyleCamera = camera
+
+        // MapKit can replace its renderer after mapType changes. Restore once
+        // immediately and once on the next run loop after that replacement.
+        mapView.setCamera(camera, animated: false)
+        DispatchQueue.main.async { [weak self] in
+            guard let self,
+                  generation == self.styleCameraRestoreGeneration,
+                  let pendingStyleCamera = self.pendingStyleCamera else { return }
+            self.enableClosestMapZoom()
+            self.mapView.setCamera(pendingStyleCamera, animated: false)
+            self.pendingStyleCamera = nil
+            self.lidarView.setNeedsDisplay()
+        }
     }
 
     @objc(updateRobotLatitude:longitude:)
