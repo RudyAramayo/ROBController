@@ -396,6 +396,7 @@ public final class ROBOpenStreetMapView: UIView, MKMapViewDelegate, UIGestureRec
         baseTileOverlay = nil
         mapView.mapType = style == .satellite ? .satellite : .standard
         enableClosestMapZoom()
+        keepLidarOverlayVisible()
         if let template = style.tileURLTemplate {
             let overlay = MKTileOverlay(urlTemplate: template)
             overlay.tileSize = CGSize(width: 256, height: 256)
@@ -438,8 +439,16 @@ public final class ROBOpenStreetMapView: UIView, MKMapViewDelegate, UIGestureRec
             self.enableClosestMapZoom()
             self.mapView.setCamera(pendingStyleCamera, animated: false)
             self.pendingStyleCamera = nil
-            self.lidarView.setNeedsDisplay()
+            self.keepLidarOverlayVisible()
         }
+    }
+
+    private func keepLidarOverlayVisible() {
+        guard lidarView.superview === self else { return }
+        lidarView.isHidden = false
+        lidarView.alpha = 1
+        insertSubview(lidarView, aboveSubview: mapView)
+        lidarView.setNeedsDisplay()
     }
 
     @objc(updateRobotLatitude:longitude:)
@@ -453,6 +462,7 @@ public final class ROBOpenStreetMapView: UIView, MKMapViewDelegate, UIGestureRec
             mapView.addAnnotation(robotAnnotation)
         }
         lidarView.robotCoordinate = coordinate
+        refreshScanStatus()
         lidarView.setNeedsDisplay()
         if !hasCenteredOnRobot {
             hasCenteredOnRobot = true
@@ -477,10 +487,12 @@ public final class ROBOpenStreetMapView: UIView, MKMapViewDelegate, UIGestureRec
 
     private func refreshScanStatus() {
         let gridState = hasOccupancyMap ? "GRID LIVE" : "NO GRID"
+        let anchorState = robotCoordinate == nil ? "MAP CENTER" : "GPS"
         scanStatusLabel.text = String(
-            format: "LIDAR / %04d / %@ / %d%% / N%+.0f°",
+            format: "LIDAR / %04d / %@ / %@ / %d%% / N%+.0f°",
             lidarReturnCount,
             gridState,
+            anchorState,
             Int((overlayCalibration.scale * 100).rounded()),
             overlayCalibration.northRotationDegrees
         )
@@ -623,7 +635,7 @@ private final class ROBLidarGeographicOverlayView: UIView {
 
     override func draw(_ rect: CGRect) {
         guard let mapView,
-              let robotCoordinate,
+              let robotCoordinate = drawingAnchorCoordinate(in: mapView),
               let context = UIGraphicsGetCurrentContext() else {
             return
         }
@@ -655,6 +667,15 @@ private final class ROBLidarGeographicOverlayView: UIView {
 
         context.setFillColor(UIColor.white.cgColor)
         context.fillEllipse(in: CGRect(x: center.x - 5, y: center.y - 5, width: 10, height: 10))
+    }
+
+    private func drawingAnchorCoordinate(in mapView: MKMapView) -> CLLocationCoordinate2D? {
+        if let robotCoordinate, CLLocationCoordinate2DIsValid(robotCoordinate) {
+            return robotCoordinate
+        }
+        guard !samples.isEmpty || occupancyMapImage != nil else { return nil }
+        let centerCoordinate = mapView.centerCoordinate
+        return CLLocationCoordinate2DIsValid(centerCoordinate) ? centerCoordinate : nil
     }
 
     private func drawOccupancyMap(
