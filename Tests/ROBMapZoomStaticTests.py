@@ -38,6 +38,16 @@ class MapZoomTests(unittest.TestCase):
         self.assertIn("let centerCoordinate = mapView.centerCoordinate", self.source)
         self.assertIn('robotCoordinate == nil ? "MAP CENTER" : "GPS"', self.source)
 
+    def test_perceived_location_can_be_aligned_and_reset(self) -> None:
+        self.assertIn("UILongPressGestureRecognizer(", self.source)
+        self.assertIn("setPerceivedRobotCoordinate", self.source)
+        self.assertIn("ROBLidarLocationOffsetStore.save(locationOffset)", self.source)
+        self.assertIn("alignRobotToMapCenter()", self.source)
+        self.assertIn("resetPerceivedRobotLocation()", self.source)
+        self.assertIn('anchorState = "ADJUSTED"', self.source)
+        self.assertIn('"Set ROB to Map Center"', self.source)
+        self.assertIn('"Use Device GPS"', self.source)
+
 
 if __name__ == "__main__":
     unittest.main()
