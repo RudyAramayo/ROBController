@@ -76,6 +76,8 @@ import UIKit
     private var tabs: [TerminalTab] = []
     private var selectedTabID: UUID?
     private var nextTabNumber = 1
+    private var keyboardObservers: [NSObjectProtocol] = []
+    private var keyBarBottomConstraint: NSLayoutConstraint?
 
     private let headerView = UIView()
     private let titleLabel = UILabel()
@@ -94,6 +96,21 @@ import UIKit
         buildInterface()
         createTab(select: true)
         refreshInterface()
+    }
+
+    public override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        startObservingKeyboard()
+    }
+
+    public override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        stopObservingKeyboard()
+        restoreKeyboardLayout()
+    }
+
+    deinit {
+        stopObservingKeyboard()
     }
 
     public func bindAutoNetClient(_ client: AutoNetClient) {
@@ -245,6 +262,8 @@ import UIKit
         }
 
         let safe = view.safeAreaLayoutGuide
+        let keyBarBottomConstraint = keyBar.bottomAnchor.constraint(equalTo: safe.bottomAnchor)
+        self.keyBarBottomConstraint = keyBarBottomConstraint
         NSLayoutConstraint.activate([
             headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -289,7 +308,7 @@ import UIKit
 
             keyBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             keyBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            keyBar.bottomAnchor.constraint(equalTo: safe.bottomAnchor),
+            keyBarBottomConstraint,
             keyBar.heightAnchor.constraint(equalToConstant: 48)
         ])
         if usesCompactHeader {
@@ -327,7 +346,94 @@ import UIKit
         terminalView.optionAsMetaKey = true
         terminalView.allowMouseReporting = true
         terminalView.changeScrollback(10_000)
+        terminalView.alwaysBounceVertical = true
+        terminalView.showsVerticalScrollIndicator = true
+        terminalView.keyboardDismissMode = .interactive
         terminalView.accessibilityLabel = "Cerebro administrator shell"
+    }
+
+    private func startObservingKeyboard() {
+        guard keyboardObservers.isEmpty else { return }
+        let center = NotificationCenter.default
+        keyboardObservers = [
+            center.addObserver(
+                forName: UIResponder.keyboardWillChangeFrameNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] notification in
+                self?.keyboardWillChangeFrame(notification)
+            },
+            center.addObserver(
+                forName: UIResponder.keyboardWillHideNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] notification in
+                self?.keyboardWillHide(notification)
+            }
+        ]
+    }
+
+    private func stopObservingKeyboard() {
+        let center = NotificationCenter.default
+        keyboardObservers.forEach(center.removeObserver)
+        keyboardObservers.removeAll()
+    }
+
+    private func keyboardWillChangeFrame(_ notification: Notification) {
+        guard view.window != nil,
+              let screenFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey]
+                as? NSValue else { return }
+        view.layoutIfNeeded()
+        let keyboardFrame = view.convert(screenFrame.cgRectValue, from: nil)
+        let intersection = view.bounds.intersection(keyboardFrame)
+        let safeBottomY = view.bounds.maxY - view.safeAreaInsets.bottom
+        let rawOverlap = intersection.isNull || intersection.isEmpty
+            ? 0
+            : max(0, safeBottomY - intersection.minY)
+
+        // Keep a useful terminal viewport in unusually short landscape or
+        // floating-keyboard layouts instead of producing conflicting geometry.
+        let minimumTerminalHeight: CGFloat = 64
+        let baselineKeyBarMinY = keyBar.frame.minY - (keyBarBottomConstraint?.constant ?? 0)
+        let maximumOverlap = max(
+            0,
+            baselineKeyBarMinY - terminalContainer.frame.minY - minimumTerminalHeight
+        )
+        applyKeyboardOverlap(min(rawOverlap, maximumOverlap), notification: notification)
+    }
+
+    private func keyboardWillHide(_ notification: Notification) {
+        applyKeyboardOverlap(0, notification: notification)
+    }
+
+    private func restoreKeyboardLayout() {
+        guard keyBarBottomConstraint?.constant != 0 else { return }
+        keyBarBottomConstraint?.constant = 0
+        view.layoutIfNeeded()
+    }
+
+    private func applyKeyboardOverlap(_ overlap: CGFloat, notification: Notification) {
+        guard let keyBarBottomConstraint else { return }
+        let newConstant = -overlap
+        guard abs(keyBarBottomConstraint.constant - newConstant) > 0.5 else { return }
+        keyBarBottomConstraint.constant = newConstant
+
+        let userInfo = notification.userInfo
+        let duration = (userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? NSNumber)?
+            .doubleValue ?? 0.25
+        let curve = (userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? NSNumber)?
+            .uintValue ?? UInt(UIView.AnimationCurve.easeInOut.rawValue)
+        let options = UIView.AnimationOptions(rawValue: curve << 16)
+            .union([.beginFromCurrentState, .allowUserInteraction])
+        UIView.animate(
+            withDuration: duration,
+            delay: 0,
+            options: options,
+            animations: { [weak self] in self?.view.layoutIfNeeded() },
+            completion: { [weak self] _ in
+                self?.selectedTab?.terminalView.flashScrollIndicators()
+            }
+        )
     }
 
     private func showTerminal(for tab: TerminalTab) {

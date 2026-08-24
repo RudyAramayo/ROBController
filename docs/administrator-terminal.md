@@ -24,7 +24,10 @@ running Cerebro. The phone or iPad never attempts to execute commands locally.
 - Tap **Open Codex** to enter `codex` in the selected login shell. It behaves like the
   Codex CLI launched from the Mac's `~/dev` directory.
 - The key strip provides Esc, Tab, Ctrl-C, and arrow keys for touch keyboards. Hardware
-  keyboards continue to work through the terminal emulator.
+  keyboards continue to work through the terminal emulator. When the software keyboard
+  appears, the key strip and terminal resize above it using the keyboard's own animation;
+  scrollback remains touch-scrollable and an interactive downward swipe dismisses the
+  keyboard.
 - Closing a tab sends a remote close request and warns that any running command will stop.
   A close made during a brief disconnect is sent as soon as the authenticated connection
   returns.
