@@ -12,6 +12,7 @@
 		D4AF00012F51000100000001 /* ROBRemoteDesktopVideoClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4AF00032F51000100000001 /* ROBRemoteDesktopVideoClient.swift */; };
 		D4AF00022F51000100000001 /* ROBRemoteDesktopViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4AF00042F51000100000001 /* ROBRemoteDesktopViewController.swift */; };
 		D4AF00052F51000100000001 /* ROBAdministratorWorkspaceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4AF00062F51000100000001 /* ROBAdministratorWorkspaceViewController.swift */; };
+		D4F011022F6A011000000001 /* ROBFollowTargetViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4F011012F6A011000000001 /* ROBFollowTargetViewController.swift */; };
 		D44862D42AC11CBB00645DF4 /* Consciousness_WatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D44862D32AC11CBB00645DF4 /* Consciousness_WatchApp.swift */; };
 		D44862D82AC11CBD00645DF4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D44862D72AC11CBD00645DF4 /* Assets.xcassets */; };
 		D44862DB2AC11CBD00645DF4 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D44862DA2AC11CBD00645DF4 /* Preview Assets.xcassets */; };
@@ -111,6 +112,7 @@
 		D4AF00032F51000100000001 /* ROBRemoteDesktopVideoClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ROBRemoteDesktopVideoClient.swift; sourceTree = "<group>"; };
 		D4AF00042F51000100000001 /* ROBRemoteDesktopViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ROBRemoteDesktopViewController.swift; sourceTree = "<group>"; };
 		D4AF00062F51000100000001 /* ROBAdministratorWorkspaceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ROBAdministratorWorkspaceViewController.swift; sourceTree = "<group>"; };
+		D4F011012F6A011000000001 /* ROBFollowTargetViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ROBFollowTargetViewController.swift; sourceTree = "<group>"; };
 		D44862D12AC11CBB00645DF4 /* ROBController-Watch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ROBController-Watch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D44862D32AC11CBB00645DF4 /* Consciousness_WatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Consciousness_WatchApp.swift; sourceTree = "<group>"; };
 		D44862D52AC11CBB00645DF4 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -279,6 +281,7 @@
 				D4AF00032F51000100000001 /* ROBRemoteDesktopVideoClient.swift */,
 				D4AF00042F51000100000001 /* ROBRemoteDesktopViewController.swift */,
 				D4AF00062F51000100000001 /* ROBAdministratorWorkspaceViewController.swift */,
+				D4F011012F6A011000000001 /* ROBFollowTargetViewController.swift */,
 				EA8727E020A924C00015A7DF /* Main.storyboard */,
 				D4D049B62AC0BC820084EAFD /* Main_iPhone.storyboard */,
 				EA8727E520A924C20015A7DF /* LaunchScreen.storyboard */,
@@ -524,6 +527,7 @@
 				D4AF00012F51000100000001 /* ROBRemoteDesktopVideoClient.swift in Sources */,
 				D4AF00022F51000100000001 /* ROBRemoteDesktopViewController.swift in Sources */,
 				D4AF00052F51000100000001 /* ROBAdministratorWorkspaceViewController.swift in Sources */,
+				D4F011022F6A011000000001 /* ROBFollowTargetViewController.swift in Sources */,
 				EA87280A20A9256E0015A7DF /* CAXException.cpp in Sources */,
 				D4DD62E52E371CB200844D2B /* RPLidarMapController.swift in Sources */,
 				EA8727FF20A925570015A7DF /* FFTHelper.cpp in Sources */,

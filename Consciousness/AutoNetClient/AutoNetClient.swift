@@ -133,6 +133,14 @@ import Network
         connection?.authenticatedSessionUUID
     }
 
+    /// Controller UUID proven alongside `authenticatedSessionID`. Follow
+    /// authorization includes both values so a visual selection cannot be
+    /// replayed from another paired controller or a later QUIC session.
+    public var authenticatedControllerID: UUID? {
+        guard isConnected else { return nil }
+        return try? ROBControlPairing.clientAuthenticationMaterial().controllerID
+    }
+
     public static var isLegacyAutoNetAllowed: Bool {
         ROBControlPairing.legacyTransportIsEnabled()
     }

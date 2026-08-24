@@ -6,8 +6,9 @@ import UIKit
 @objcMembers public final class ROBAdministratorWorkspaceViewController: UIViewController {
     private let terminal = ROBAdministratorTerminalViewController()
     private let desktop = ROBRemoteDesktopViewController()
+    private let follow = ROBFollowTargetViewController()
     private let switcher = UIView()
-    private let selector = UISegmentedControl(items: ["Terminal", "Desktop"])
+    private let selector = UISegmentedControl(items: ["Terminal", "Desktop", "Follow"])
     private let contentView = UIView()
     private var selectedController: UIViewController?
     private var switcherHeightConstraint: NSLayoutConstraint?
@@ -48,7 +49,7 @@ import UIKit
             switcherHeightConstraint,
             selector.centerXAnchor.constraint(equalTo: switcher.centerXAnchor),
             selector.centerYAnchor.constraint(equalTo: switcher.centerYAnchor),
-            selector.widthAnchor.constraint(equalTo: switcher.widthAnchor, multiplier: 0.58),
+            selector.widthAnchor.constraint(equalTo: switcher.widthAnchor, multiplier: 0.82),
             selector.heightAnchor.constraint(equalToConstant: 30),
             contentView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             contentView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -64,19 +65,29 @@ import UIKit
     public func bindAutoNetClient(_ client: AutoNetClient) {
         terminal.bindAutoNetClient(client)
         desktop.bindAutoNetClient(client)
+        follow.bindAutoNetClient(client)
     }
 
     public func setConnectionAvailable(_ available: Bool) {
         terminal.setConnectionAvailable(available)
         desktop.setConnectionAvailable(available)
+        follow.setConnectionAvailable(available)
     }
 
     public func handleIncomingData(_ data: Data) -> Bool {
-        terminal.handleIncomingData(data) || desktop.handleIncomingData(data)
+        follow.handleIncomingData(data)
+            || terminal.handleIncomingData(data)
+            || desktop.handleIncomingData(data)
     }
 
     @objc private func selectionChanged() {
-        show(selector.selectedSegmentIndex == 0 ? terminal : desktop, animated: true)
+        let controller: UIViewController
+        switch selector.selectedSegmentIndex {
+        case 1: controller = desktop
+        case 2: controller = follow
+        default: controller = terminal
+        }
+        show(controller, animated: true)
     }
 
     private func setDesktopFullScreen(_ enabled: Bool) {
