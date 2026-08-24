@@ -103,6 +103,7 @@
 @property (readwrite, assign) int selectedLocaleIndex;
 
 @property(nonatomic, strong) AutoNetClient *autoNetClient;
+@property(nonatomic, strong) ROBAdministratorTerminalViewController *administratorTerminalViewController;
 @property(nonatomic, strong) ROBWatchRelay *watchRelay;
 @property(nonatomic, strong) NSTimer *treadControlHeartbeatTimer;
 @property(nonatomic, assign) NSTimeInterval lastTreadControlSendUptime;
@@ -1084,9 +1085,15 @@
     [self.view addSubview:overlay];
 
     UITabBarController *tabs = [UITabBarController new];
+    ROBAdministratorTerminalViewController *administratorTerminal = [ROBAdministratorTerminalViewController new];
+    administratorTerminal.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Terminal"
+                                                                     image:[UIImage systemImageNamed:@"terminal.fill"]
+                                                                       tag:0];
+    self.administratorTerminalViewController = administratorTerminal;
     if ([self usesIPadCommandConsole]) {
         tabs.viewControllers = @[
             [self buildIPadCommandTab],
+            administratorTerminal,
             [self buildSettingsTab]
         ];
     } else {
@@ -1094,6 +1101,7 @@
             [self buildMapTab],
             [self buildControlsTab],
             [self buildAutoTab],
+            administratorTerminal,
             [self buildSettingsTab]
         ];
     }
@@ -1399,6 +1407,7 @@
     //MCBus Setup
     if (self.autoNetClient == nil)
         self.autoNetClient = [[AutoNetClient alloc] initWithService:AutoNetClient.defaultService];
+    [self.administratorTerminalViewController bindAutoNetClient:self.autoNetClient];
     self.autoNetClient.dataDelegate = self;
     [self.autoNetClient start];
     self.watchRelay = [[ROBWatchRelay alloc] initWithAutoNetClient:self.autoNetClient];
@@ -3259,10 +3268,14 @@ didSelectDestinationLatitude:(double)latitude
 
     // AutoNetClient delivers this on the main queue after reciprocal pairing
     // proof succeeds and whenever that authenticated readiness is lost.
+    [self.administratorTerminalViewController setConnectionAvailable:isConnected];
     [self refreshAutonomyConsole];
 }
 
 - (void) didReceiveData:(NSData *)data {
+    if ([self.administratorTerminalViewController handleIncomingData:data]) {
+        return;
+    }
     ROBAutonomySessionMessage *autonomyMessage = [ROBAutonomySessionWireCodec decodeEnvelopeData:data];
     if (autonomyMessage != nil) {
         dispatch_async(dispatch_get_main_queue(), ^{

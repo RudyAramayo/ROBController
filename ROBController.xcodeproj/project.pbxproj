@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D4AD00012F10000100000001 /* ROBAdministratorTerminalViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4AD00022F10000100000001 /* ROBAdministratorTerminalViewController.swift */; };
+		D4AD00032F10000100000001 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = D4AD00052F10000100000001 /* SwiftTerm */; };
 		D44862D42AC11CBB00645DF4 /* Consciousness_WatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D44862D32AC11CBB00645DF4 /* Consciousness_WatchApp.swift */; };
 		D44862D82AC11CBD00645DF4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D44862D72AC11CBD00645DF4 /* Assets.xcassets */; };
 		D44862DB2AC11CBD00645DF4 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D44862DA2AC11CBD00645DF4 /* Preview Assets.xcassets */; };
@@ -102,6 +104,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D4AD00022F10000100000001 /* ROBAdministratorTerminalViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ROBAdministratorTerminalViewController.swift; sourceTree = "<group>"; };
 		D44862D12AC11CBB00645DF4 /* ROBController-Watch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ROBController-Watch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D44862D32AC11CBB00645DF4 /* Consciousness_WatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Consciousness_WatchApp.swift; sourceTree = "<group>"; };
 		D44862D52AC11CBB00645DF4 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -191,6 +194,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D4AD00032F10000100000001 /* SwiftTerm in Frameworks */,
 				EA6B40CA20B0938B00422C7C /* CoreMotion.framework in Frameworks */,
 				EA8729A520AB7CF20015A7DF /* CoreMedia.framework in Frameworks */,
 				EA8729A320AB79690015A7DF /* Vision.framework in Frameworks */,
@@ -265,6 +269,7 @@
 		EA8727D920A924C00015A7DF /* Consciousness */ = {
 			isa = PBXGroup;
 			children = (
+				D4AD00022F10000100000001 /* ROBAdministratorTerminalViewController.swift */,
 				EA8727E020A924C00015A7DF /* Main.storyboard */,
 				D4D049B62AC0BC820084EAFD /* Main_iPhone.storyboard */,
 				EA8727E520A924C20015A7DF /* LaunchScreen.storyboard */,
@@ -409,6 +414,9 @@
 				D44862DD2AC11CBD00645DF4 /* PBXTargetDependency */,
 			);
 			name = ROBController;
+			packageProductDependencies = (
+				D4AD00052F10000100000001 /* SwiftTerm */,
+			);
 			productName = Consciousness;
 			productReference = EA8727D720A924C00015A7DF /* ROBController.app */;
 			productType = "com.apple.product-type.application";
@@ -441,6 +449,9 @@
 				Base,
 			);
 			mainGroup = EA8727CE20A924C00015A7DF;
+			packageReferences = (
+				D4AD00042F10000100000001 /* XCRemoteSwiftPackageReference "SwiftTerm" */,
+			);
 			productRefGroup = EA8727D820A924C00015A7DF /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -500,6 +511,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D4AD00012F10000100000001 /* ROBAdministratorTerminalViewController.swift in Sources */,
 				EA87280A20A9256E0015A7DF /* CAXException.cpp in Sources */,
 				D4DD62E52E371CB200844D2B /* RPLidarMapController.swift in Sources */,
 				EA8727FF20A925570015A7DF /* FFTHelper.cpp in Sources */,
@@ -561,6 +573,25 @@
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		D4AD00042F10000100000001 /* XCRemoteSwiftPackageReference "SwiftTerm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/migueldeicaza/SwiftTerm.git";
+			requirement = {
+				kind = exactVersion;
+				version = 1.18.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D4AD00052F10000100000001 /* SwiftTerm */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D4AD00042F10000100000001 /* XCRemoteSwiftPackageReference "SwiftTerm" */;
+			productName = SwiftTerm;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
 		D44862E02AC11CBD00645DF4 /* Debug */ = {
