@@ -20,6 +20,14 @@
 #import <WatchConnectivity/WatchConnectivity.h>
 #import "ROBController-Swift.h"
 
+typedef NS_ENUM(NSUInteger, ROBControlAuthorityState) {
+    ROBControlAuthorityStateDisconnected,
+    ROBControlAuthorityStateUnknown,
+    ROBControlAuthorityStateRequesting,
+    ROBControlAuthorityStateGranted,
+    ROBControlAuthorityStateNotGranted,
+};
+
 @interface ConsciousViewController () <AVAudioPlayerDelegate, AVCaptureAudioDataOutputSampleBufferDelegate, AVSpeechSynthesizerDelegate, SFSpeechRecognizerDelegate, SFSpeechRecognitionTaskDelegate, UITableViewDelegate, UITableViewDataSource, AutoNetClientDataDelegate, CLLocationManagerDelegate, ROBOpenStreetMapViewDelegate>
 {
     AVCaptureSession *session;
@@ -88,6 +96,10 @@
 @property (nonatomic, strong) ROBOpenStreetMapView *openStreetMapView;
 @property (nonatomic, strong) UIView *persistentControlOverlay;
 @property (nonatomic, strong) UILabel *connectionStatusLabel;
+@property (nonatomic, strong) UIButton *requestControlButton;
+@property (nonatomic, strong) NSTimer *controlAuthorityRequestTimer;
+@property (nonatomic, assign) ROBControlAuthorityState controlAuthorityState;
+@property (nonatomic, copy) NSString *activeControlAuthorityID;
 @property (nonatomic, strong) UIButton *microphoneButton;
 @property (nonatomic, strong) UIView *microphoneGlowView;
 @property (nonatomic, strong) UIVisualEffectView *microphoneBlurView;
@@ -186,6 +198,8 @@
 - (void)sendTreadControlSnapshot;
 - (void)sendTreadControlSnapshotImmediately;
 - (void)refreshTreadControlHeartbeat;
+- (void)refreshControlAuthorityUI;
+- (void)consumeControlAuthorityControllerID:(NSString *)controllerID;
 
 @property (readwrite, assign) IBOutlet UIImageView *rpLidarMapView;
 @property (readwrite, retain) RPLidarMapController *rpLidarMapController;
@@ -1018,14 +1032,18 @@
     reconnect.accessibilityHint = @"Reconnect to the paired Cerebro controller";
     UIView *indicator = [UIView new];
     indicator.translatesAutoresizingMaskIntoConstraints = NO;
-    indicator.backgroundColor = UIColor.systemRedColor;
+    indicator.backgroundColor = UIColor.systemGrayColor;
     indicator.layer.cornerRadius = 7;
+    indicator.isAccessibilityElement = YES;
+    indicator.accessibilityIdentifier = @"robotControlAuthorityIndicator";
     [indicator.widthAnchor constraintEqualToConstant:14].active = YES;
     [indicator.heightAnchor constraintEqualToConstant:14].active = YES;
     self.chatConnectionStatus = indicator;
 
     UILabel *linkLabel = [UILabel new];
-    linkLabel.text = @"Disconnected";
+    linkLabel.text = @"ROBOT OFFLINE";
+    linkLabel.numberOfLines = 2;
+    linkLabel.lineBreakMode = NSLineBreakByWordWrapping;
     linkLabel.font = [self usesIPadCommandConsole]
         ? [UIFont monospacedSystemFontOfSize:11 weight:UIFontWeightSemibold]
         : [UIFont preferredFontForTextStyle:UIFontTextStyleCaption1];
@@ -1034,6 +1052,8 @@
         : UIColor.secondaryLabelColor;
     self.connectionStatusLabel = linkLabel;
     UIButton *requestControl = [self controlButtonWithTitle:@"Request Control" selector:@selector(RequestToBeMasterControllerAction:) events:UIControlEventTouchUpInside];
+    requestControl.accessibilityIdentifier = @"requestRobotControlButton";
+    self.requestControlButton = requestControl;
     UIStackView *topRow = [[UIStackView alloc] initWithArrangedSubviews:@[reconnect, indicator, linkLabel, [UIView new], requestControl]];
     topRow.axis = UILayoutConstraintAxisHorizontal;
     topRow.alignment = UIStackViewAlignmentCenter;
@@ -2178,13 +2198,41 @@
 }
 
 - (IBAction) RequestToBeMasterControllerAction:(id) sender {
+    if (!self.autoNetClient.isConnected) {
+        self.controlAuthorityState = ROBControlAuthorityStateDisconnected;
+        [self refreshControlAuthorityUI];
+        return;
+    }
+    [self.controlAuthorityRequestTimer invalidate];
+    self.controlAuthorityState = ROBControlAuthorityStateRequesting;
+    self.activeControlAuthorityID = nil;
+    [self refreshControlAuthorityUI];
+
     NSDictionary *messageDict = @{@"message": @"RequestToBeMasterController",
                                   @"sender":[[[UIDevice currentDevice] identifierForVendor] UUIDString]};
     NSError *error = nil;
-    [self.autoNetClient sendWithData:[NSKeyedArchiver archivedDataWithRootObject:messageDict requiringSecureCoding:false error:&error]];
-    if (error != nil) {
+    NSData *requestData = [NSKeyedArchiver archivedDataWithRootObject:messageDict
+                                                requiringSecureCoding:false
+                                                                error:&error];
+    if (requestData == nil || error != nil) {
         NSLog(@"Error %@", [error localizedDescription]);
+        self.controlAuthorityState = ROBControlAuthorityStateUnknown;
+        [self refreshControlAuthorityUI];
+        return;
     }
+    [self.autoNetClient sendWithData:requestData];
+
+    __weak ConsciousViewController *weakSelf = self;
+    self.controlAuthorityRequestTimer = [NSTimer scheduledTimerWithTimeInterval:4.0
+                                                                        repeats:NO
+                                                                          block:^(NSTimer *timer) {
+        ConsciousViewController *strongSelf = weakSelf;
+        if (strongSelf.controlAuthorityState == ROBControlAuthorityStateRequesting) {
+            strongSelf.controlAuthorityState = ROBControlAuthorityStateUnknown;
+            [strongSelf refreshControlAuthorityUI];
+        }
+        strongSelf.controlAuthorityRequestTimer = nil;
+    }];
 }
 
 #pragma mark - Pairing and controller-authorized autonomy
@@ -2648,11 +2696,7 @@ didSelectDestinationLatitude:(double)latitude
 {
     BOOL pairingConfigured = self.autoNetClient.isPairingConfigured;
     BOOL connected = self.autoNetClient.isConnected;
-    self.chatConnectionStatus.backgroundColor = connected ? UIColor.systemGreenColor : UIColor.systemRedColor;
-    self.connectionStatusLabel.text = connected
-        ? @"Connected"
-        : (pairingConfigured ? @"Disconnected" : @"Not paired");
-    self.connectionStatusLabel.textColor = connected ? UIColor.systemGreenColor : UIColor.systemRedColor;
+    [self refreshControlAuthorityUI];
     BOOL sessionMayBeActive = self.autonomySessionID.length > 0 || self.autonomyStartRequested ||
         self.autonomySessionState == ROBAutonomySessionStateActive ||
         self.autonomySessionState == ROBAutonomySessionStateStopping;
@@ -2687,6 +2731,80 @@ didSelectDestinationLatitude:(double)latitude
                                      stateName,
                                      self.autonomyStatusDetail ?: @"No status received.",
                                      transportState];
+}
+
+- (void)refreshControlAuthorityUI
+{
+    BOOL connected = self.autoNetClient.isConnected;
+    UIColor *color = UIColor.systemRedColor;
+    NSString *status = self.autoNetClient.isPairingConfigured
+        ? @"ROBOT OFFLINE"
+        : @"NOT PAIRED";
+    NSString *buttonTitle = @"Request Control";
+    BOOL buttonEnabled = connected;
+
+    if (connected) {
+        switch (self.controlAuthorityState) {
+            case ROBControlAuthorityStateRequesting:
+                color = UIColor.systemOrangeColor;
+                status = @"LINK VERIFIED • CONTROL REQUESTING…";
+                buttonTitle = @"Requesting…";
+                buttonEnabled = NO;
+                break;
+            case ROBControlAuthorityStateGranted:
+                // Green is reserved for a robot-confirmed authority update.
+                color = UIColor.systemGreenColor;
+                status = @"CONTROL GRANTED BY ROBOT";
+                buttonTitle = @"Control Granted";
+                buttonEnabled = NO;
+                break;
+            case ROBControlAuthorityStateNotGranted: {
+                color = UIColor.systemOrangeColor;
+                NSString *owner = self.activeControlAuthorityID;
+                if ([owner isEqualToString:@"Brain"]) {
+                    owner = @"Cerebro";
+                } else if ([owner isEqualToString:@"Autonomous"]) {
+                    owner = @"Autonomy";
+                } else {
+                    owner = @"another controller";
+                }
+                status = [NSString stringWithFormat:@"CONTROL NOT GRANTED • %@ OWNS IT", owner];
+                break;
+            }
+            case ROBControlAuthorityStateUnknown:
+            case ROBControlAuthorityStateDisconnected:
+                color = UIColor.systemGrayColor;
+                status = @"LINK VERIFIED • CONTROL UNCONFIRMED";
+                break;
+        }
+    }
+
+    self.chatConnectionStatus.backgroundColor = color;
+    self.chatConnectionStatus.accessibilityLabel = status;
+    self.connectionStatusLabel.text = status;
+    self.connectionStatusLabel.textColor = color;
+    self.connectionStatusLabel.adjustsFontSizeToFitWidth = YES;
+    self.connectionStatusLabel.minimumScaleFactor = 0.68;
+    [self.requestControlButton setTitle:buttonTitle forState:UIControlStateNormal];
+    self.requestControlButton.enabled = buttonEnabled;
+}
+
+- (void)consumeControlAuthorityControllerID:(NSString *)controllerID
+{
+    if (controllerID.length == 0 || controllerID.length > 128 ||
+        [controllerID rangeOfCharacterFromSet:NSCharacterSet.controlCharacterSet].location != NSNotFound) {
+        return;
+    }
+    [self.controlAuthorityRequestTimer invalidate];
+    self.controlAuthorityRequestTimer = nil;
+    self.activeControlAuthorityID = controllerID;
+    NSString *localControllerID = [[[UIDevice currentDevice] identifierForVendor] UUIDString];
+    self.controlAuthorityState =
+        localControllerID.length > 0 &&
+        [controllerID caseInsensitiveCompare:localControllerID] == NSOrderedSame
+            ? ROBControlAuthorityStateGranted
+            : ROBControlAuthorityStateNotGranted;
+    [self refreshControlAuthorityUI];
 }
 
 #pragma mark - Gemini robot-action approval console
@@ -3269,6 +3387,12 @@ didSelectDestinationLatitude:(double)latitude
 
     // AutoNetClient delivers this on the main queue after reciprocal pairing
     // proof succeeds and whenever that authenticated readiness is lost.
+    [self.controlAuthorityRequestTimer invalidate];
+    self.controlAuthorityRequestTimer = nil;
+    self.activeControlAuthorityID = nil;
+    self.controlAuthorityState = isConnected
+        ? ROBControlAuthorityStateUnknown
+        : ROBControlAuthorityStateDisconnected;
     [self.administratorWorkspaceViewController setConnectionAvailable:isConnected];
     [self refreshAutonomyConsole];
 }
@@ -3306,6 +3430,18 @@ didSelectDestinationLatitude:(double)latitude
     NSString *sender = [messageDictionary valueForKey:@"sender"];
     if (error != nil) {
         NSLog(@"Error data recieved: %@", [error localizedDescription]);
+    }
+
+    if ([msg isEqualToString:@"ROBControlAuthorityStateV1"]) {
+        NSString *version = messageDictionary[@"control.authority.version"];
+        NSString *controllerID = messageDictionary[@"control.authority.controller_id"];
+        if ([sender isEqualToString:@"Cerebro"] && [version isEqualToString:@"1"] &&
+            [controllerID isKindOfClass:NSString.class]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self consumeControlAuthorityControllerID:controllerID];
+            });
+        }
+        return;
     }
     
     //TODO: Set AutoBrake userinterface status here!!! Bring in Gyro Data
@@ -3529,6 +3665,7 @@ didSelectDestinationLatitude:(double)latitude
     [self.robotActionExpiryTimer invalidate];
     [self.robotActionHelloTimer invalidate];
     [self.treadControlHeartbeatTimer invalidate];
+    [self.controlAuthorityRequestTimer invalidate];
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
