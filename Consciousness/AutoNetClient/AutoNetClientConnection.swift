@@ -48,6 +48,7 @@ final class AutoNetClientConnection {
     private var controlSendIsInFlight = false
     private var authenticationState: AuthenticationState = .transportConnecting
     private var authenticationTimeoutWorkItem: DispatchWorkItem?
+    private(set) var authenticatedSessionUUID: UUID?
 
     init(
         nwConnection: NWConnection,
@@ -218,6 +219,7 @@ final class AutoNetClientConnection {
             }
             authenticationTimeoutWorkItem?.cancel()
             authenticationTimeoutWorkItem = nil
+            authenticatedSessionUUID = UUID(robClientSessionBytes: challenge.sessionID)
             authenticationState = .authenticated
             setReady(true)
             announceNetworkProbeCapability()
@@ -347,6 +349,7 @@ final class AutoNetClientConnection {
         authenticationState = .stopped
         authenticationTimeoutWorkItem?.cancel()
         authenticationTimeoutWorkItem = nil
+        authenticatedSessionUUID = nil
         isReceiving = false
         pendingControlData = nil
         controlSendIsInFlight = false
@@ -358,5 +361,14 @@ final class AutoNetClientConnection {
         didStopCallback = nil
         readinessDidChangeCallback = nil
         callback?(error)
+    }
+}
+
+private extension UUID {
+    init?(robClientSessionBytes data: Data) {
+        guard data.count == 16 else { return nil }
+        var value: uuid_t = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        _ = withUnsafeMutableBytes(of: &value) { data.copyBytes(to: $0) }
+        self.init(uuid: value)
     }
 }

@@ -126,6 +126,13 @@ import Network
         ROBControlPairing.isPaired
     }
 
+    /// The UUID proven by the current reciprocal robctl/2 authentication.
+    /// Independent media connections bind their authorization to this exact
+    /// live session so a paired credential alone cannot open the desktop.
+    public var authenticatedSessionID: UUID? {
+        connection?.authenticatedSessionUUID
+    }
+
     public static var isLegacyAutoNetAllowed: Bool {
         ROBControlPairing.legacyTransportIsEnabled()
     }

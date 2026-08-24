@@ -103,7 +103,7 @@
 @property (readwrite, assign) int selectedLocaleIndex;
 
 @property(nonatomic, strong) AutoNetClient *autoNetClient;
-@property(nonatomic, strong) ROBAdministratorTerminalViewController *administratorTerminalViewController;
+@property(nonatomic, strong) ROBAdministratorWorkspaceViewController *administratorWorkspaceViewController;
 @property(nonatomic, strong) ROBWatchRelay *watchRelay;
 @property(nonatomic, strong) NSTimer *treadControlHeartbeatTimer;
 @property(nonatomic, assign) NSTimeInterval lastTreadControlSendUptime;
@@ -1085,15 +1085,16 @@
     [self.view addSubview:overlay];
 
     UITabBarController *tabs = [UITabBarController new];
-    ROBAdministratorTerminalViewController *administratorTerminal = [ROBAdministratorTerminalViewController new];
-    administratorTerminal.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Terminal"
-                                                                     image:[UIImage systemImageNamed:@"terminal.fill"]
-                                                                       tag:0];
-    self.administratorTerminalViewController = administratorTerminal;
+    ROBAdministratorWorkspaceViewController *administratorWorkspace =
+        [ROBAdministratorWorkspaceViewController new];
+    administratorWorkspace.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Admin"
+                                                                      image:[UIImage systemImageNamed:@"terminal.fill"]
+                                                                        tag:0];
+    self.administratorWorkspaceViewController = administratorWorkspace;
     if ([self usesIPadCommandConsole]) {
         tabs.viewControllers = @[
             [self buildIPadCommandTab],
-            administratorTerminal,
+            administratorWorkspace,
             [self buildSettingsTab]
         ];
     } else {
@@ -1101,7 +1102,7 @@
             [self buildMapTab],
             [self buildControlsTab],
             [self buildAutoTab],
-            administratorTerminal,
+            administratorWorkspace,
             [self buildSettingsTab]
         ];
     }
@@ -1407,7 +1408,7 @@
     //MCBus Setup
     if (self.autoNetClient == nil)
         self.autoNetClient = [[AutoNetClient alloc] initWithService:AutoNetClient.defaultService];
-    [self.administratorTerminalViewController bindAutoNetClient:self.autoNetClient];
+    [self.administratorWorkspaceViewController bindAutoNetClient:self.autoNetClient];
     self.autoNetClient.dataDelegate = self;
     [self.autoNetClient start];
     self.watchRelay = [[ROBWatchRelay alloc] initWithAutoNetClient:self.autoNetClient];
@@ -3268,12 +3269,12 @@ didSelectDestinationLatitude:(double)latitude
 
     // AutoNetClient delivers this on the main queue after reciprocal pairing
     // proof succeeds and whenever that authenticated readiness is lost.
-    [self.administratorTerminalViewController setConnectionAvailable:isConnected];
+    [self.administratorWorkspaceViewController setConnectionAvailable:isConnected];
     [self refreshAutonomyConsole];
 }
 
 - (void) didReceiveData:(NSData *)data {
-    if ([self.administratorTerminalViewController handleIncomingData:data]) {
+    if ([self.administratorWorkspaceViewController handleIncomingData:data]) {
         return;
     }
     ROBAutonomySessionMessage *autonomyMessage = [ROBAutonomySessionWireCodec decodeEnvelopeData:data];

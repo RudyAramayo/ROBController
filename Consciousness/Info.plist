@@ -23,6 +23,7 @@
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_robctl._udp</string>
+		<string>_robvideo._udp</string>
 		<!-- Compatibility discovery only. Connections are refused unless
 		     ROB_CONTROL_ALLOW_LEGACY_AUTONET=1 is explicitly enabled. -->
 		<string>_roboNet._tcp</string>
