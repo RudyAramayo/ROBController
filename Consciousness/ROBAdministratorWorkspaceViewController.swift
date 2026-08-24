@@ -6,15 +6,21 @@ import UIKit
 @objcMembers public final class ROBAdministratorWorkspaceViewController: UIViewController {
     private let terminal = ROBAdministratorTerminalViewController()
     private let desktop = ROBRemoteDesktopViewController()
+    private let switcher = UIView()
     private let selector = UISegmentedControl(items: ["Terminal", "Desktop"])
     private let contentView = UIView()
     private var selectedController: UIViewController?
+    private var switcherHeightConstraint: NSLayoutConstraint?
+    private var desktopIsFullScreen = false
+
+    public override var prefersStatusBarHidden: Bool { desktopIsFullScreen }
+    public override var preferredStatusBarUpdateAnimation: UIStatusBarAnimation { .fade }
+    public override var prefersHomeIndicatorAutoHidden: Bool { desktopIsFullScreen }
 
     public override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = UIColor(red: 0.022, green: 0.03, blue: 0.045, alpha: 1)
 
-        let switcher = UIView()
         switcher.translatesAutoresizingMaskIntoConstraints = false
         switcher.backgroundColor = UIColor(red: 0.035, green: 0.047, blue: 0.065, alpha: 1)
         view.addSubview(switcher)
@@ -33,11 +39,13 @@ import UIKit
         view.addSubview(contentView)
 
         let safe = view.safeAreaLayoutGuide
+        let switcherHeightConstraint = switcher.heightAnchor.constraint(equalToConstant: 42)
+        self.switcherHeightConstraint = switcherHeightConstraint
         NSLayoutConstraint.activate([
             switcher.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             switcher.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             switcher.topAnchor.constraint(equalTo: safe.topAnchor),
-            switcher.heightAnchor.constraint(equalToConstant: 42),
+            switcherHeightConstraint,
             selector.centerXAnchor.constraint(equalTo: switcher.centerXAnchor),
             selector.centerYAnchor.constraint(equalTo: switcher.centerYAnchor),
             selector.widthAnchor.constraint(equalTo: switcher.widthAnchor, multiplier: 0.58),
@@ -47,6 +55,9 @@ import UIKit
             contentView.topAnchor.constraint(equalTo: switcher.bottomAnchor),
             contentView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+        desktop.fullScreenLayoutHandler = { [weak self] enabled in
+            self?.setDesktopFullScreen(enabled)
+        }
         show(terminal, animated: false)
     }
 
@@ -66,6 +77,20 @@ import UIKit
 
     @objc private func selectionChanged() {
         show(selector.selectedSegmentIndex == 0 ? terminal : desktop, animated: true)
+    }
+
+    private func setDesktopFullScreen(_ enabled: Bool) {
+        guard desktopIsFullScreen != enabled else { return }
+        desktopIsFullScreen = enabled
+        switcherHeightConstraint?.constant = enabled ? 0 : 42
+        switcher.isHidden = enabled
+        tabBarController?.tabBar.isHidden = enabled
+        setNeedsStatusBarAppearanceUpdate()
+        tabBarController?.setNeedsStatusBarAppearanceUpdate()
+        setNeedsUpdateOfHomeIndicatorAutoHidden()
+        UIView.animate(withDuration: 0.22) { [weak self] in
+            self?.view.layoutIfNeeded()
+        }
     }
 
     private func show(_ controller: UIViewController, animated: Bool) {

@@ -30,6 +30,10 @@ permission can be silently granted over the network.
   two frames per second). Select **Fast** for a responsive 960 × 540 stream at up to
   eight frames per second. Changing quality reconnects only the isolated desktop-image
   stream; robot control and desktop-input authorization remain active.
+- Tap the expand button for a true full-screen desktop. The Admin selector, app tab bar,
+  and status bar disappear, while the header and keyboard controls float over the image
+  instead of reserving space. Tap the crossed-out eye to hide those overlays and use the
+  small eye button to bring them back; the collapse button exits full screen.
 - Tap a field on the Mac, enter text in the controller's text bar, then press **Type**.
   The key strip supplies Escape, Tab, Return, Delete, Command-A, and arrow keys.
 - Leaving **Admin → Desktop** closes its media stream and releases any held mouse button.

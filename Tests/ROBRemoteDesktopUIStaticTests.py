@@ -24,6 +24,12 @@ assert 'desktopMaximumJPEGBytes = 8 * 1_024 * 1_024' in client
 assert 'remoteDesktopVideoQuality' in view and 'qualityChanged' in view
 assert 'videoClient.start(controlSessionID: sessionID, quality:' in view
 assert 'scrollView.maximumZoomScale = 12' in view
+assert 'remoteDesktopFullScreen' in view and 'remoteDesktopHideOverlay' in view
+assert 'remoteDesktopShowOverlay' in view and 'setOverlayControlsVisible' in view
+assert 'fullScreenScrollConstraints' in view and 'normalScrollConstraints' in view
+assert 'scrollView.contentInsetAdjustmentBehavior = .never' in view
+assert 'fullScreenLayoutHandler' in workspace and 'tabBar.isHidden = enabled' in workspace
+assert 'prefersStatusBarHidden' in workspace and 'prefersHomeIndicatorAutoHidden' in workspace
 assert "UIPanGestureRecognizer" in view and "UILongPressGestureRecognizer" in view
 assert "primaryDown" in view and "primaryUp" in view and "secondaryClick" in view
 assert "remoteDesktopTextInput" in view and "sendTextPressed" in view

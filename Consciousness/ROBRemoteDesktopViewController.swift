@@ -10,13 +10,21 @@ import UIKit
     private var inputStatus = "Open Admin → Desktop to request access."
     private var inputControlAvailable = false
     private var latestNormalizedPoint = CGPoint(x: 0.5, y: 0.5)
+    private var isFullScreen = false
+    private var overlayControlsVisible = true
     private var videoQuality = ROBRemoteDesktopVideoQuality(
         rawValue: UserDefaults.standard.integer(forKey: "ROBRemoteDesktop.videoQuality")
     ) ?? .maximumDetail
+    @nonobjc var fullScreenLayoutHandler: ((Bool) -> Void)?
 
+    private let headerView = UIView()
+    private let inputPanel = UIView()
     private let statusPill = UILabel()
     private let detailLabel = UILabel()
     private let retryButton = UIButton(type: .system)
+    private let fullScreenButton = UIButton(type: .system)
+    private let hideOverlayButton = UIButton(type: .system)
+    private let revealOverlayButton = UIButton(type: .system)
     private let modeControl = UISegmentedControl(items: ["Control", "Pan / Zoom"])
     private let qualityControl = UISegmentedControl(
         items: ROBRemoteDesktopVideoQuality.allCases.map(\.controlTitle)
@@ -27,6 +35,8 @@ import UIKit
     private let textField = UITextField()
     private let sendTextButton = UIButton(type: .system)
     private let keyBar = UIStackView()
+    private var normalScrollConstraints: [NSLayoutConstraint] = []
+    private var fullScreenScrollConstraints: [NSLayoutConstraint] = []
 
     public override func viewDidLoad() {
         super.viewDidLoad()
@@ -43,6 +53,7 @@ import UIKit
 
     public override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
+        if isFullScreen { setFullScreen(false, animated: false) }
         isDesktopVisible = false
         send(kind: .stop)
         videoClient.stop()
@@ -84,10 +95,9 @@ import UIKit
     private func buildInterface() {
         view.backgroundColor = UIColor(red: 0.022, green: 0.03, blue: 0.045, alpha: 1)
 
-        let header = UIView()
-        header.translatesAutoresizingMaskIntoConstraints = false
-        header.backgroundColor = UIColor(red: 0.045, green: 0.06, blue: 0.08, alpha: 1)
-        view.addSubview(header)
+        headerView.translatesAutoresizingMaskIntoConstraints = false
+        headerView.backgroundColor = UIColor(red: 0.045, green: 0.06, blue: 0.08, alpha: 0.94)
+        view.addSubview(headerView)
 
         let title = UILabel()
         title.translatesAutoresizingMaskIntoConstraints = false
@@ -95,7 +105,7 @@ import UIKit
         title.font = .monospacedSystemFont(ofSize: 17, weight: .bold)
         title.textColor = .white
         title.accessibilityIdentifier = "remoteDesktopTitle"
-        header.addSubview(title)
+        headerView.addSubview(title)
 
         statusPill.translatesAutoresizingMaskIntoConstraints = false
         statusPill.font = .monospacedSystemFont(ofSize: 10, weight: .bold)
@@ -104,14 +114,14 @@ import UIKit
         statusPill.layer.cornerRadius = 9
         statusPill.layer.masksToBounds = true
         statusPill.accessibilityIdentifier = "remoteDesktopStatus"
-        header.addSubview(statusPill)
+        headerView.addSubview(statusPill)
 
         detailLabel.translatesAutoresizingMaskIntoConstraints = false
         detailLabel.font = .monospacedSystemFont(ofSize: 10, weight: .regular)
         detailLabel.textColor = UIColor.white.withAlphaComponent(0.68)
         detailLabel.numberOfLines = 2
         detailLabel.lineBreakMode = .byTruncatingTail
-        header.addSubview(detailLabel)
+        headerView.addSubview(detailLabel)
 
         var retryConfiguration = UIButton.Configuration.tinted()
         retryConfiguration.title = UIDevice.current.userInterfaceIdiom == .phone ? nil : "Reconnect"
@@ -122,7 +132,33 @@ import UIKit
         retryButton.accessibilityIdentifier = "remoteDesktopReconnect"
         retryButton.addTarget(self, action: #selector(retryPressed), for: .touchUpInside)
         retryButton.translatesAutoresizingMaskIntoConstraints = false
-        header.addSubview(retryButton)
+
+        var fullScreenConfiguration = UIButton.Configuration.tinted()
+        fullScreenConfiguration.image = UIImage(systemName: "arrow.up.left.and.arrow.down.right")
+        fullScreenButton.configuration = fullScreenConfiguration
+        fullScreenButton.accessibilityLabel = "Enter full screen desktop"
+        fullScreenButton.accessibilityIdentifier = "remoteDesktopFullScreen"
+        fullScreenButton.addTarget(self, action: #selector(fullScreenPressed), for: .touchUpInside)
+        fullScreenButton.translatesAutoresizingMaskIntoConstraints = false
+
+        var hideOverlayConfiguration = UIButton.Configuration.tinted()
+        hideOverlayConfiguration.image = UIImage(systemName: "eye.slash")
+        hideOverlayButton.configuration = hideOverlayConfiguration
+        hideOverlayButton.accessibilityLabel = "Hide desktop controls"
+        hideOverlayButton.accessibilityIdentifier = "remoteDesktopHideOverlay"
+        hideOverlayButton.addTarget(self, action: #selector(hideOverlayPressed), for: .touchUpInside)
+        hideOverlayButton.translatesAutoresizingMaskIntoConstraints = false
+        hideOverlayButton.isHidden = true
+
+        let headerActions = UIStackView(arrangedSubviews: [
+            retryButton,
+            hideOverlayButton,
+            fullScreenButton
+        ])
+        headerActions.translatesAutoresizingMaskIntoConstraints = false
+        headerActions.axis = .horizontal
+        headerActions.spacing = 5
+        headerView.addSubview(headerActions)
 
         modeControl.translatesAutoresizingMaskIntoConstraints = false
         modeControl.selectedSegmentIndex = 0
@@ -145,13 +181,14 @@ import UIKit
         desktopControls.axis = .horizontal
         desktopControls.distribution = .fillEqually
         desktopControls.spacing = 8
-        header.addSubview(desktopControls)
+        headerView.addSubview(desktopControls)
 
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.delegate = self
         scrollView.minimumZoomScale = 1
         scrollView.maximumZoomScale = 12
         scrollView.bouncesZoom = true
+        scrollView.contentInsetAdjustmentBehavior = .never
         scrollView.backgroundColor = .black
         scrollView.layer.borderColor = UIColor.white.withAlphaComponent(0.1).cgColor
         scrollView.layer.borderWidth = 1
@@ -188,9 +225,8 @@ import UIKit
         imageView.addGestureRecognizer(rightClick)
         imageView.addGestureRecognizer(remoteScroll)
 
-        let inputPanel = UIView()
         inputPanel.translatesAutoresizingMaskIntoConstraints = false
-        inputPanel.backgroundColor = UIColor(red: 0.045, green: 0.06, blue: 0.08, alpha: 1)
+        inputPanel.backgroundColor = UIColor(red: 0.045, green: 0.06, blue: 0.08, alpha: 0.94)
         view.addSubview(inputPanel)
 
         textField.translatesAutoresizingMaskIntoConstraints = false
@@ -245,36 +281,55 @@ import UIKit
             keyBar.addArrangedSubview(button)
         }
 
-        let safe = view.safeAreaLayoutGuide
-        NSLayoutConstraint.activate([
-            header.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            header.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            header.topAnchor.constraint(equalTo: safe.topAnchor),
-            header.heightAnchor.constraint(equalToConstant: 126),
+        var revealConfiguration = UIButton.Configuration.filled()
+        revealConfiguration.image = UIImage(systemName: "eye")
+        revealConfiguration.baseBackgroundColor = UIColor.black.withAlphaComponent(0.72)
+        revealOverlayButton.configuration = revealConfiguration
+        revealOverlayButton.accessibilityLabel = "Show desktop controls"
+        revealOverlayButton.accessibilityIdentifier = "remoteDesktopShowOverlay"
+        revealOverlayButton.addTarget(self, action: #selector(revealOverlayPressed), for: .touchUpInside)
+        revealOverlayButton.translatesAutoresizingMaskIntoConstraints = false
+        revealOverlayButton.isHidden = true
+        view.addSubview(revealOverlayButton)
 
-            title.leadingAnchor.constraint(equalTo: header.leadingAnchor, constant: 14),
-            title.topAnchor.constraint(equalTo: header.topAnchor, constant: 9),
+        let safe = view.safeAreaLayoutGuide
+        normalScrollConstraints = [
+            scrollView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: inputPanel.topAnchor)
+        ]
+        fullScreenScrollConstraints = [
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ]
+        NSLayoutConstraint.activate([
+            headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            headerView.topAnchor.constraint(equalTo: safe.topAnchor),
+            headerView.heightAnchor.constraint(equalToConstant: 126),
+
+            title.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 14),
+            title.topAnchor.constraint(equalTo: headerView.topAnchor, constant: 9),
             statusPill.leadingAnchor.constraint(equalTo: title.trailingAnchor, constant: 8),
             statusPill.centerYAnchor.constraint(equalTo: title.centerYAnchor),
             statusPill.heightAnchor.constraint(equalToConstant: 18),
             statusPill.widthAnchor.constraint(greaterThanOrEqualToConstant: 54),
-            retryButton.trailingAnchor.constraint(equalTo: header.trailingAnchor, constant: -10),
-            retryButton.topAnchor.constraint(equalTo: header.topAnchor, constant: 6),
+            headerActions.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -10),
+            headerActions.topAnchor.constraint(equalTo: headerView.topAnchor, constant: 6),
+            headerActions.heightAnchor.constraint(equalToConstant: 34),
             retryButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 44),
-            retryButton.heightAnchor.constraint(equalToConstant: 34),
+            fullScreenButton.widthAnchor.constraint(equalToConstant: 44),
+            hideOverlayButton.widthAnchor.constraint(equalToConstant: 44),
             detailLabel.leadingAnchor.constraint(equalTo: title.leadingAnchor),
-            detailLabel.trailingAnchor.constraint(equalTo: retryButton.trailingAnchor),
-            detailLabel.topAnchor.constraint(equalTo: retryButton.bottomAnchor, constant: 2),
+            detailLabel.trailingAnchor.constraint(equalTo: headerActions.trailingAnchor),
+            detailLabel.topAnchor.constraint(equalTo: headerActions.bottomAnchor, constant: 2),
             detailLabel.bottomAnchor.constraint(lessThanOrEqualTo: desktopControls.topAnchor, constant: -5),
             desktopControls.leadingAnchor.constraint(equalTo: title.leadingAnchor),
-            desktopControls.trailingAnchor.constraint(equalTo: retryButton.trailingAnchor),
-            desktopControls.bottomAnchor.constraint(equalTo: header.bottomAnchor, constant: -7),
+            desktopControls.trailingAnchor.constraint(equalTo: headerActions.trailingAnchor),
+            desktopControls.bottomAnchor.constraint(equalTo: headerView.bottomAnchor, constant: -7),
             desktopControls.heightAnchor.constraint(equalToConstant: 32),
 
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.topAnchor.constraint(equalTo: header.bottomAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: inputPanel.topAnchor),
             imageView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
             imageView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
             imageView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
@@ -300,8 +355,14 @@ import UIKit
             keyBar.leadingAnchor.constraint(equalTo: textField.leadingAnchor),
             keyBar.trailingAnchor.constraint(equalTo: sendTextButton.trailingAnchor),
             keyBar.topAnchor.constraint(equalTo: textField.bottomAnchor, constant: 6),
-            keyBar.bottomAnchor.constraint(equalTo: inputPanel.bottomAnchor, constant: -7)
+            keyBar.bottomAnchor.constraint(equalTo: inputPanel.bottomAnchor, constant: -7),
+
+            revealOverlayButton.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -8),
+            revealOverlayButton.topAnchor.constraint(equalTo: safe.topAnchor, constant: 8),
+            revealOverlayButton.widthAnchor.constraint(equalToConstant: 46),
+            revealOverlayButton.heightAnchor.constraint(equalToConstant: 40)
         ])
+        NSLayoutConstraint.activate(normalScrollConstraints)
         updateInteractionMode()
     }
 
@@ -344,6 +405,88 @@ import UIKit
     @objc private func retryPressed() {
         videoClient.stop()
         beginDesktopIfPossible()
+    }
+
+    @objc private func fullScreenPressed() {
+        setFullScreen(!isFullScreen, animated: true)
+    }
+
+    @objc private func hideOverlayPressed() {
+        setOverlayControlsVisible(false, animated: true)
+    }
+
+    @objc private func revealOverlayPressed() {
+        setOverlayControlsVisible(true, animated: true)
+    }
+
+    private func setFullScreen(_ enabled: Bool, animated: Bool) {
+        guard isViewLoaded, isFullScreen != enabled else { return }
+        isFullScreen = enabled
+        if enabled {
+            NSLayoutConstraint.deactivate(normalScrollConstraints)
+            NSLayoutConstraint.activate(fullScreenScrollConstraints)
+        } else {
+            NSLayoutConstraint.deactivate(fullScreenScrollConstraints)
+            NSLayoutConstraint.activate(normalScrollConstraints)
+        }
+        fullScreenLayoutHandler?(enabled)
+        hideOverlayButton.isHidden = !enabled
+        statusPill.isHidden = enabled
+        setOverlayControlsVisible(true, animated: false)
+
+        var configuration = fullScreenButton.configuration
+        configuration?.image = UIImage(
+            systemName: enabled
+                ? "arrow.down.right.and.arrow.up.left"
+                : "arrow.up.left.and.arrow.down.right"
+        )
+        fullScreenButton.configuration = configuration
+        fullScreenButton.accessibilityLabel = enabled
+            ? "Exit full screen desktop"
+            : "Enter full screen desktop"
+
+        view.bringSubviewToFront(headerView)
+        view.bringSubviewToFront(inputPanel)
+        view.bringSubviewToFront(revealOverlayButton)
+        let changes: () -> Void = { [weak self] in
+            self?.view.layoutIfNeeded()
+        }
+        if animated {
+            UIView.animate(withDuration: 0.22, animations: changes)
+        } else {
+            changes()
+        }
+    }
+
+    private func setOverlayControlsVisible(_ visible: Bool, animated: Bool) {
+        overlayControlsVisible = isFullScreen ? visible : true
+        let shouldShow = overlayControlsVisible
+        if shouldShow {
+            headerView.isHidden = false
+            inputPanel.isHidden = false
+        } else {
+            view.endEditing(true)
+        }
+        revealOverlayButton.isHidden = shouldShow || !isFullScreen
+        let changes = { [weak self] in
+            self?.headerView.alpha = shouldShow ? 1 : 0
+            self?.inputPanel.alpha = shouldShow ? 1 : 0
+        }
+        let completion: (Bool) -> Void = { [weak self] _ in
+            guard let self, !self.overlayControlsVisible else { return }
+            self.headerView.isHidden = true
+            self.inputPanel.isHidden = true
+        }
+        if animated {
+            UIView.animate(
+                withDuration: 0.18,
+                animations: changes,
+                completion: completion
+            )
+        } else {
+            changes()
+            completion(true)
+        }
     }
 
     @objc private func modeChanged() {
