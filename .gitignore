@@ -1,0 +1,2 @@
+# Xcode stores personal debugger breakpoints in user-specific project data.
+*.xcbkptlist
