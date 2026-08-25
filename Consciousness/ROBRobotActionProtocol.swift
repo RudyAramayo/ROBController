@@ -37,7 +37,8 @@ public final class ROBRobotActionMessage: NSObject {
         "play_gesture",
         "request_pick",
         "navigate_relative",
-        "stop_motion"
+        "stop_motion",
+        "run_startup_test"
     ]
 
     public let kind: ROBRobotActionMessageKind
@@ -337,11 +338,11 @@ public final class ROBRobotActionMessage: NSObject {
                 return "\(action) requires target_id"
             }
 
-        case "play_gesture":
+        case "play_gesture", "run_startup_test":
             guard let gesture = arguments["gesture"] as? String,
                   !gesture.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                   gesture.count <= 128 else {
-                return "play_gesture requires gesture"
+                return "\(action) requires gesture"
             }
 
         case "navigate_relative":
@@ -377,7 +378,7 @@ public final class ROBRobotActionMessage: NSObject {
         switch action {
         case "look_at", "request_pick":
             return keys == ["target_id"]
-        case "play_gesture":
+        case "play_gesture", "run_startup_test":
             return keys == ["gesture"]
         case "navigate_relative":
             return keys == ["distance_m", "yaw_rad", "speed_scale"]

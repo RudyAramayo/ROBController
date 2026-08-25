@@ -190,6 +190,18 @@ struct ROBRobotActionProtocolFixtureTests {
             stopWithUnknownKey.validationError != nil,
             "stop_motion accepted an unknown argument"
         )
+
+        let startup = ROBRobotActionMessage.actionRequest(
+            callID: "headless-startup-1",
+            action: "run_startup_test",
+            arguments: ["gesture": "startup.wake-both"],
+            senderID: "cerebro-1",
+            recipientID: "controller-1",
+            expiresAt: Date(timeIntervalSinceNow: 30)
+        )
+        try expect(startup.validationError == nil, "Fixed startup request was rejected")
+        let startupDecoded = try roundTrip(startup)
+        try expect(startupDecoded.action == "run_startup_test", "Startup action changed")
     }
 
     private static func testOversizedPayloadsAreRejected() throws {

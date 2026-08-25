@@ -2840,7 +2840,8 @@ didSelectDestinationLatitude:(double)latitude
                                         @"play_gesture",
                                         @"request_pick",
                                         @"navigate_relative",
-                                        @"stop_motion"
+                                        @"stop_motion",
+                                        @"run_startup_test"
                                     ]];
     self.didAnnounceRobotActionConsole = [self sendRobotActionMessage:hello];
 }
@@ -2875,7 +2876,11 @@ didSelectDestinationLatitude:(double)latitude
 
 - (void)rememberRobotActionStatus:(ROBRobotActionMessage *)status
 {
-    NSString *ledgerKey = [self robotActionLedgerKeyForPeerID:status.recipientID
+    NSString *localSenderID = [self robotActionSenderID];
+    NSString *peerID = [status.senderID isEqualToString:localSenderID]
+        ? status.recipientID
+        : status.senderID;
+    NSString *ledgerKey = [self robotActionLedgerKeyForPeerID:peerID
                                                       callID:status.callID];
     if (ledgerKey == nil) {
         return;
@@ -2958,7 +2963,7 @@ didSelectDestinationLatitude:(double)latitude
 
 - (void)refreshRobotActionConsole
 {
-    self.robotActionSafetyLabel.text = @"PER-ACTION BUTTONS DO NOT ACTUATE — AUTONOMY IS A SEPARATE BOUNDED SESSION";
+    self.robotActionSafetyLabel.text = @"APPROVE STARTUP ONLY WITH A CLEAR ZONE AND E-STOP READY — BUTTONS SEND AUTHORIZATION, NOT JOINT VALUES";
     [self.robotActionsEnabledButton setTitle:(self.robotActionsEnabled ? @"AI Actions: On" : @"AI Actions: Off")
                                     forState:UIControlStateNormal];
 
@@ -2966,13 +2971,15 @@ didSelectDestinationLatitude:(double)latitude
     BOOL accepted = self.robotActionsEnabled &&
         (self.currentRobotActionState == ROBRobotActionStateAccepted ||
          self.currentRobotActionState == ROBRobotActionStateExecuting);
+    ROBRobotActionMessage *request = self.currentRobotActionRequest;
+    BOOL cerebroOwnsCompletion = [request.action isEqualToString:@"play_gesture"] ||
+        [request.action isEqualToString:@"run_startup_test"];
     self.robotActionApproveButton.enabled = pending;
     self.robotActionRejectButton.enabled = pending;
-    self.robotActionCompleteButton.enabled = accepted;
-    self.robotActionFailedButton.enabled = accepted;
+    self.robotActionCompleteButton.enabled = accepted && !cerebroOwnsCompletion;
+    self.robotActionFailedButton.enabled = accepted && !cerebroOwnsCompletion;
     self.robotActionCancelButton.enabled = pending || accepted;
 
-    ROBRobotActionMessage *request = self.currentRobotActionRequest;
     if (request == nil) {
         self.robotActionTitleLabel.text = self.robotActionsEnabled ?
             @"AI Action: Waiting for request" : @"AI Action: Disabled (operator opt-in required)";
@@ -2980,10 +2987,19 @@ didSelectDestinationLatitude:(double)latitude
         return;
     }
 
-    NSString *action = request.action.length > 0 ? request.action : @"unknown action";
+    NSString *action = [request.action isEqualToString:@"run_startup_test"]
+        ? @"LIVE STARTUP TEST"
+        : (request.action.length > 0 ? request.action : @"unknown action");
+    NSString *stateName = [self displayNameForRobotActionState:self.currentRobotActionState];
+    if (cerebroOwnsCompletion && self.currentRobotActionState == ROBRobotActionStateAccepted) {
+        stateName = @"APPROVED — CEREBRO STARTING";
+    } else if (cerebroOwnsCompletion &&
+               self.currentRobotActionState == ROBRobotActionStateExecuting) {
+        stateName = @"CEREBRO EXECUTING — CANCEL + HOLD AVAILABLE";
+    }
     self.robotActionTitleLabel.text = [NSString stringWithFormat:@"AI Action: %@ — %@",
                                        action,
-                                       [self displayNameForRobotActionState:self.currentRobotActionState]];
+                                       stateName];
     NSString *ledgerKey = [self robotActionLedgerKeyForPeerID:request.senderID
                                                        callID:request.callID];
     ROBRobotActionMessage *latestStatus = self.robotActionLastStatusByLedgerKey[ledgerKey];
@@ -3261,8 +3277,15 @@ didSelectDestinationLatitude:(double)latitude
         case ROBRobotActionMessageKindActionCancel:
             [self handleRobotActionCancellation:message];
             break;
-        case ROBRobotActionMessageKindControllerHello:
         case ROBRobotActionMessageKindActionStatus:
+            if ([self.currentRobotActionRequest.callID isEqualToString:message.callID] &&
+                [self.currentRobotActionRequest.senderID isEqualToString:message.senderID]) {
+                self.currentRobotActionState = message.state;
+                [self rememberRobotActionStatus:message];
+                [self refreshRobotActionConsole];
+            }
+            break;
+        case ROBRobotActionMessageKindControllerHello:
             break;
     }
 }
@@ -3284,9 +3307,14 @@ didSelectDestinationLatitude:(double)latitude
     [self.robotActionExpiryTimer invalidate];
     self.robotActionExpiryTimer = nil;
     self.currentRobotActionState = ROBRobotActionStateAccepted;
+    BOOL cerebroOwnedAction = [request.action isEqualToString:@"play_gesture"] ||
+        [request.action isEqualToString:@"run_startup_test"];
+    NSString *approvalDetail = cerebroOwnedAction
+        ? @"Operator authorized one immediate Cerebro-owned run with the exclusion zone clear and physical E-stop ready."
+        : @"Operator approved. Perform the action manually; this console does not actuate hardware.";
     [self sendRobotActionStatusForRequest:request
                                    state:ROBRobotActionStateAccepted
-                                  detail:@"Operator approved. Perform the action manually; this console does not actuate hardware."
+                                  detail:approvalDetail
                                   result:@{}];
     [self refreshRobotActionConsole];
 }
