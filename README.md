@@ -1,6 +1,15 @@
 # ROBController
 This is the controller software for my droid R.O.B.
 
+For visually authorized following, open **Admin → Follow**, tap **Refresh
+Main-Camera Preview**, select an outlined person, then **Authorize Selected
+Person**. Authorization can start physical motion; test only under operator
+supervision with working stop controls. **STOP FOLLOW MODE** revokes the target.
+This flow uses a fresh image from Cerebro, not an arbitrary photo-library image.
+It requires a current Cerebro build, an authenticated controller session, and
+fresh depth, belly-camera safety and lidar data. Read the displayed blocker
+instead of bypassing a missing sensor or calibration gate.
+
 On the RPLidar map, long-press ROB's actual position to calibrate the perceived
 lidar location. The map settings menu also provides **Set ROB to Map Center**
 and **Use Device GPS**; the persisted east/north correction follows subsequent
