@@ -79,6 +79,7 @@ private extension CGRect {
     private var sequence: UInt64 = 0
     private var previewMessage: ROBFollowTargetMessage?
     private var selectedCandidateID: UUID?
+    private var previewWaitToken: UUID?
 
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
@@ -113,6 +114,7 @@ private extension CGRect {
         loadViewIfNeeded()
         refreshButton.isEnabled = available
         if !available {
+            previewWaitToken = nil
             authorizeButton.isEnabled = false
             refreshState(state: .idle, detail: "Connect to Cerebro before selecting a follow target.")
         }
@@ -157,6 +159,15 @@ private extension CGRect {
         header.axis = .horizontal
         header.alignment = .center
         contentStack.addArrangedSubview(header)
+
+        let buildLabel = UILabel()
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+        buildLabel.text = "ROBController \(version) • build \(build)"
+        buildLabel.font = .monospacedSystemFont(ofSize: 10, weight: .regular)
+        buildLabel.textColor = .secondaryLabel
+        buildLabel.accessibilityIdentifier = "followControllerBuild"
+        contentStack.addArrangedSubview(buildLabel)
 
         detailLabel.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
         detailLabel.textColor = UIColor.white.withAlphaComponent(0.72)
@@ -282,15 +293,22 @@ private extension CGRect {
         previewView.selectedID = nil
         selectedLabel.text = "Waiting for Cerebro…"
         authorizeButton.isEnabled = false
-        send(ROBFollowTargetMessage(
+        guard send(ROBFollowTargetMessage(
             kind: .previewRequest,
             requestID: requestID,
             controllerID: identity.controller,
             sessionID: identity.session,
             sequence: nextSequence(),
             sentAtMilliseconds: Self.nowMilliseconds
-        ))
+        )) else { return }
         refreshState(state: .idle, detail: "Waiting for a fresh main-camera frame and person detection…")
+        let token = requestID
+        previewWaitToken = token
+        DispatchQueue.main.asyncAfter(deadline: .now() + 12) { [weak self] in
+            guard let self, self.previewWaitToken == token else { return }
+            self.previewWaitToken = nil
+            self.refreshState(state: .blocked, detail: "Preview timed out. Check that Cerebro is running an updated build and its main camera is ready, then refresh again.")
+        }
     }
 
     private func selectCandidate(_ id: UUID) {
@@ -341,6 +359,7 @@ private extension CGRect {
     }
 
     @objc private func stopPressed() {
+        previewWaitToken = nil
         guard let identity = authenticatedIdentity() else { return }
         send(ROBFollowTargetMessage(
             kind: .stop,
@@ -359,6 +378,7 @@ private extension CGRect {
         if message.kind == .preview,
            let jpeg = message.previewJPEG,
            let image = UIImage(data: jpeg) {
+            previewWaitToken = nil
             previewMessage = message
             selectedCandidateID = nil
             previewView.image = image
@@ -367,6 +387,7 @@ private extension CGRect {
             selectedLabel.text = "Tap one outlined person to select the authorized target."
         }
         if let state = message.state {
+            if state != .idle { previewWaitToken = nil }
             refreshState(state: state, detail: message.detail ?? state.rawValue)
         }
     }
@@ -394,12 +415,13 @@ private extension CGRect {
         return (controller, session)
     }
 
-    private func send(_ message: ROBFollowTargetMessage) {
+    @discardableResult private func send(_ message: ROBFollowTargetMessage) -> Bool {
         guard let data = try? ROBFollowTargetProtocol.encode(message) else {
             refreshState(state: .blocked, detail: "The follow request failed local safety validation.")
-            return
+            return false
         }
         autoNetClient?.send(data: data)
+        return true
     }
 
     private func nextSequence() -> UInt64 {

@@ -80,6 +80,14 @@ import UIKit
             || desktop.handleIncomingData(data)
     }
 
+    /// Navigation only. Target selection and motion authorization remain explicit.
+    public func showFollowMode() {
+        loadViewIfNeeded()
+        setDesktopFullScreen(false)
+        selector.selectedSegmentIndex = 2
+        show(follow, animated: false)
+    }
+
     @objc private func selectionChanged() {
         let controller: UIViewController
         switch selector.selectedSegmentIndex {

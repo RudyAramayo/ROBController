@@ -591,6 +591,16 @@ typedef NS_ENUM(NSUInteger, ROBControlAuthorityState) {
 {
     UIViewController *controller = [self tabControllerWithTitle:@"Auto" systemImage:@"brain.head.profile"];
     UIStackView *stack = [self scrollingStackInController:controller];
+    [stack addArrangedSubview:[self sectionLabelWithText:@"Follow a person"]];
+    UIButton *followButton = [self controlButtonWithTitle:@"Open Follow Mode" selector:@selector(openFollowMode:) events:UIControlEventTouchUpInside];
+    followButton.accessibilityIdentifier = @"openFollowModeButton";
+    [stack addArrangedSubview:followButton];
+    UILabel *followHint = [UILabel new];
+    followHint.numberOfLines = 0;
+    followHint.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
+    followHint.textColor = UIColor.secondaryLabelColor;
+    followHint.text = @"Choose a person in ROB’s camera preview, authorize following, and stop from your iPhone.";
+    [stack addArrangedSubview:followHint];
     UILabel *title = [self sectionLabelWithText:@"AI interaction"];
     title.textAlignment = NSTextAlignmentCenter;
     [stack addArrangedSubview:title];
@@ -625,6 +635,12 @@ typedef NS_ENUM(NSUInteger, ROBControlAuthorityState) {
     [stack addArrangedSubview:autonomyButton];
     [stack addArrangedSubview:[self buildRobotActionPanel]];
     return controller;
+}
+
+- (IBAction)openFollowMode:(id)sender
+{
+    self.robotTabBarController.selectedViewController = self.administratorWorkspaceViewController;
+    [self.administratorWorkspaceViewController showFollowMode];
 }
 
 - (UIView *)buildIPadMicrophoneModule

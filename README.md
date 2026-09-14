@@ -1,7 +1,7 @@
 # ROBController
 This is the controller software for my droid R.O.B.
 
-For visually authorized following, open **Admin → Follow**, tap **Refresh
+On iPhone, open **Auto → Open Follow Mode** (also **Admin → Follow**), tap **Refresh
 Main-Camera Preview**, select an outlined person, then **Authorize Selected
 Person**. Authorization can start physical motion; test only under operator
 supervision with working stop controls. **STOP FOLLOW MODE** revokes the target.
