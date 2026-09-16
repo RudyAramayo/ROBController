@@ -6,7 +6,7 @@ import Network
 @main
 struct ROBControlHandshakeIntegrationTests {
     enum Scenario: CaseIterable {
-        case noChallenge, noAcceptance, rejectHello, rejectProof, invalidProof, accepted
+        case noChallenge, noAcceptance, rejectHello, rejectProof, sessionInUse, invalidProof, accepted
     }
 
     static func parameters() -> NWParameters {
@@ -21,7 +21,7 @@ struct ROBControlHandshakeIntegrationTests {
         for scenario in Scenario.allCases {
             try run(scenario)
         }
-        print("ROBController handshake integration tests passed (6 scenarios)")
+        print("ROBController handshake integration tests passed (7 scenarios)")
     }
 
     static func run(_ scenario: Scenario) throws {
@@ -67,6 +67,11 @@ struct ROBControlHandshakeIntegrationTests {
                         send(connection, type: .pairingRejected, data: Data([1]))
                         return
                     }
+                    if scenario == .sessionInUse {
+                        send(connection, type: .pairingRejected,
+                             data: ROBControlPairingRejectionReason.sessionInUse.encoded)
+                        return
+                    }
                     var accepted = ROBControlAuthenticator.accepted(
                         for: proof, challenge: challenge, credential: credential).encoded
                     if scenario == .invalidProof { accepted[accepted.count - 1] ^= 0xFF }
@@ -93,6 +98,7 @@ struct ROBControlHandshakeIntegrationTests {
                  (.noAcceptance, .authenticationTimedOut(.awaitingAcceptance)),
                  (.rejectHello, .pairingRejected),
                  (.rejectProof, .pairingRejected),
+                 (.sessionInUse, .pairingSessionInUse),
                  (.invalidProof, .authenticationFailed):
                 break
             default:

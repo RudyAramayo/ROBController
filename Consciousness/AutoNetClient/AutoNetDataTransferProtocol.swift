@@ -591,6 +591,22 @@ enum ROBRemoteDesktopControlProtocol {
   }
 }
 
+/// Versioned rejection details. Older clients already reject any pairingRejected
+/// frame; a one-byte legacy payload and unknown reasons remain generic failures.
+enum ROBControlPairingRejectionReason: UInt8 {
+  case unspecified = 0
+  case sessionInUse = 1
+
+  init(payload: Data) {
+    guard payload.count == 2, payload.first == 1,
+      let reason = Self(rawValue: payload[payload.startIndex + 1])
+    else { self = .unspecified; return }
+    self = reason
+  }
+
+  var encoded: Data { Data([1, rawValue]) }
+}
+
 enum ROBControlAuthenticationPhase {
   case awaitingChallenge
   case awaitingAcceptance
@@ -607,6 +623,7 @@ enum AutoNetTransportError: LocalizedError {
   case authenticationFailed
   case authenticationTimedOut(ROBControlAuthenticationPhase)
   case pairingRejected
+  case pairingSessionInUse
   case listenerUnavailable
 
   var errorDescription: String? {
@@ -634,6 +651,8 @@ enum AutoNetTransportError: LocalizedError {
       return "Pairing timed out waiting for Cerebro to confirm the proof."
     case .pairingRejected:
       return "Cerebro rejected this pairing attempt. Check the controller pairing in Cerebro."
+    case .pairingSessionInUse:
+      return "Another ROBController session is using this pairing. Close it or pair this device with its own code."
     case .listenerUnavailable:
       return "The robot-control listener could not be created."
     }

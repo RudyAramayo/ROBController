@@ -200,7 +200,10 @@ final class AutoNetClientConnection {
         }
 
         if type == .pairingRejected {
-            stopLocked(error: AutoNetTransportError.pairingRejected)
+            let reason = ROBControlPairingRejectionReason(payload: data)
+            stopLocked(error: reason == .sessionInUse
+                ? AutoNetTransportError.pairingSessionInUse
+                : AutoNetTransportError.pairingRejected)
             return
         }
 

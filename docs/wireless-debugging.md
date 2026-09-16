@@ -26,11 +26,17 @@ mean the pairing key was rejected. Automatic retries retain the last failure
 onscreen until a successful connection or an explicit Reconnect. Request Control
 becomes available only after the link is authenticated.
 
+Current Cerebro builds expire a probe-capable session after ten seconds without
+a valid heartbeat reply, including during a reconnect. If another responsive
+session is using the same pairing, ROBController reports that separately. Close
+the other app, or issue a separate pairing code for each device or simulator.
+
 ## Validation
 
 The loopback fixture exercises the production client handshake and v2 framer
 with synthetic credentials over local TCP. It checks both timeouts, explicit
-rejection at either stage, invalid server proof, and successful mutual proof.
+rejection at either stage, a pairing already in use, invalid server proof, and
+successful mutual proof.
 It does not replace the QUIC/TLS certificate-pinning checks in a device run.
 
 ```sh
