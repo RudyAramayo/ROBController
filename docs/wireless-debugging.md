@@ -30,13 +30,17 @@ Current Cerebro builds expire a probe-capable session after ten seconds without
 a valid heartbeat reply, including during a reconnect. If another responsive
 session is using the same pairing, ROBController reports that separately. Close
 the other app, or issue a separate pairing code for each device or simulator.
+Reconnect retains the outgoing connection until its queued shutdown cancels the
+transport and clears the authenticated session, even after the client facade has
+released it.
 
 ## Validation
 
 The loopback fixture exercises the production client handshake and v2 framer
 with synthetic credentials over local TCP. It checks both timeouts, explicit
 rejection at either stage, a pairing already in use, invalid server proof, and
-successful mutual proof.
+successful mutual proof. The success case also releases the connection while
+shutdown is queued and verifies that the old transport is still cancelled.
 It does not replace the QUIC/TLS certificate-pinning checks in a device run.
 
 ```sh

@@ -36,6 +36,8 @@ struct ROBControlHandshakeIntegrationTests {
         let serverQueue = DispatchQueue(label: "rob.handshake.fixture")
         let ready = DispatchSemaphore(value: 0)
         let finished = DispatchSemaphore(value: 0)
+        let releaseReadinessCallback = DispatchSemaphore(value: 0)
+        let stopped = DispatchSemaphore(value: 0)
         let listenerParameters = parameters()
         listenerParameters.requiredLocalEndpoint = .hostPort(host: "127.0.0.1", port: .any)
         let listener = try NWListener(using: listenerParameters)
@@ -81,18 +83,27 @@ struct ROBControlHandshakeIntegrationTests {
         }
         listener.start(queue: serverQueue)
         precondition(ready.wait(timeout: .now() + 10) == .success, "Listener did not start")
-        let client = AutoNetClientConnection(
-            nwConnection: NWConnection(host: "127.0.0.1", port: listener.port!, using: parameters()),
+        let transport = NWConnection(host: "127.0.0.1", port: listener.port!, using: parameters())
+        var client: AutoNetClientConnection? = AutoNetClientConnection(
+            nwConnection: transport,
             transportMode: .v2, credential: credential
         )
-        client.readinessDidChangeCallback = { isReady in
+        client?.readinessDidChangeCallback = { [weak client] isReady in
             guard isReady else { return }
             precondition(scenario == .accepted, "Failed handshake became authenticated")
-            precondition(client.authenticatedSessionUUID != nil)
+            precondition(client?.authenticatedSessionUUID != nil)
             finished.signal()
+            // Hold the transport queue while the facade queues stop() and
+            // releases its connection, exactly as Reconnect does in the app.
+            precondition(releaseReadinessCallback.wait(timeout: .now() + 5) == .success)
         }
-        client.didStopCallback = { error in
-            if scenario == .accepted { return } // Cleanup after the success assertion.
+        client?.didStopCallback = { [weak client] error in
+            if scenario == .accepted {
+                precondition(error == nil)
+                precondition(client?.authenticatedSessionUUID == nil)
+                stopped.signal()
+                return
+            }
             switch (scenario, error as? AutoNetTransportError) {
             case (.noChallenge, .authenticationTimedOut(.awaitingChallenge)),
                  (.noAcceptance, .authenticationTimedOut(.awaitingAcceptance)),
@@ -104,12 +115,26 @@ struct ROBControlHandshakeIntegrationTests {
             default:
                 fatalError("Unexpected result for \(scenario): \(String(describing: error))")
             }
-            precondition(client.authenticatedSessionUUID == nil)
+            precondition(client?.authenticatedSessionUUID == nil)
             finished.signal()
         }
-        client.start()
+        client?.start()
         precondition(finished.wait(timeout: .now() + 12) == .success, "Handshake never completed")
-        client.stop()
+        client?.stop()
+        client = nil
+        if scenario == .accepted {
+            releaseReadinessCallback.signal()
+            precondition(stopped.wait(timeout: .now() + 5) == .success,
+                         "Reconnect must finish session cleanup after releasing the connection")
+            // NWConnection publishes its cancelled state asynchronously, after
+            // the application cleanup callback has returned on the queue.
+            let cancellationDeadline = Date().addingTimeInterval(2)
+            while transport.state != .cancelled && Date() < cancellationDeadline {
+                Thread.sleep(forTimeInterval: 0.01)
+            }
+            precondition(transport.state == .cancelled,
+                         "Reconnect must cancel its old transport after releasing the connection")
+        }
         serverQueue.sync {
             server?.cancel()
             listener.cancel()

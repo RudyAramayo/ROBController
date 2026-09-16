@@ -362,7 +362,10 @@ final class AutoNetClientConnection {
     }
 
     func stop() {
-        queue.async { [weak self] in self?.stopLocked(error: nil) }
+        // The facade releases its connection immediately during Reconnect.
+        // Keep it alive until cancellation and session cleanup have run;
+        // a weak capture can discard the shutdown before it reaches the queue.
+        queue.async { self.stopLocked(error: nil) }
     }
 
     private func stopLocked(error: Error?) {
