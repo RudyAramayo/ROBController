@@ -29,18 +29,26 @@ import UIKit
             object: nil, queue: .main) { [weak self] _ in MainActor.assumeIsolated { self?.model.sceneActive = true } })
     }
     deinit { lifecycleObservers.forEach(NotificationCenter.default.removeObserver) }
-    func bindAutoNetClient(_ client: AutoNetClient) { self.client = client }
+    func bindAutoNetClient(_ client: AutoNetClient) {
+        self.client = client
+        setConnectionAvailable(client.isConnected)
+    }
     func setConnectionAvailable(_ available: Bool) {
-        if !available { model.status = nil; model.imageData = nil; model.frameID = nil }
+        if !available { model.disconnected(); inboundSession = nil; lastInbound = 0 }
+        else { model.poll() }
     }
     func handleIncomingData(_ data: Data) -> Bool {
         guard ROBBubbleProtocol.claims(data) else { return false }
-        guard let message = try? ROBBubbleProtocol.decode(data),
-              message.command.operation == .status,
+        guard let message = try? ROBBubbleProtocol.decode(data) else {
+            model.error = "Bubble status could not be decoded. Update Cerebro and ROBController together."; return true
+        }
+        guard message.command.operation == .status,
               message.controllerID == client?.authenticatedControllerID,
               message.sessionID == client?.authenticatedSessionID,
-              ROBBubbleProtocol.isFresh(message, now: Date().timeIntervalSince1970),
               let status = message.status else { return true }
+        guard ROBBubbleProtocol.isFresh(message, now: Date().timeIntervalSince1970) else {
+            model.error = "Bubble reply expired. Check Cerebro responsiveness and both devices’ automatic date/time."; return true
+        }
         if inboundSession != message.sessionID { inboundSession = message.sessionID; lastInbound = 0 }
         guard message.sequence > lastInbound else { return true }
         lastInbound = message.sequence

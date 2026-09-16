@@ -10,6 +10,7 @@ import Foundation
 import Network
 
 @objc public protocol AutoNetClientDataDelegate: AnyObject {
+    /// Application data is delivered on the main queue, like readiness changes.
     func didReceiveData(_ data: NSData)
 
     /// Reports authenticated application readiness, not merely QUIC/TLS state.
@@ -208,7 +209,11 @@ import Network
     }
 
     func didReceiveData(_ data: Data) {
-        dataDelegate?.didReceiveData(data as NSData)
+        // Network callbacks arrive on the transport queue. The delegate owns
+        // UIKit/SwiftUI consoles, including the bubble authorization state.
+        performOnMain { [weak self] in
+            self?.dataDelegate?.didReceiveData(data as NSData)
+        }
     }
 
     private func notifyConnectionState(_ connected: Bool) {
