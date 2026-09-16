@@ -71,6 +71,9 @@
 		EA87299520AB67D00015A7DF /* CoreML.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA87299420AB67D00015A7DF /* CoreML.framework */; };
 		EA8729A320AB79690015A7DF /* Vision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA8729A220AB79690015A7DF /* Vision.framework */; };
 		EA8729A520AB7CF20015A7DF /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA8729A420AB7CF20015A7DF /* CoreMedia.framework */; };
+		4D3FF2260D5003E6808AFD77 /* ROBBubbleProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D149252C2727BBC0FD1CDC4 /* ROBBubbleProtocol.swift */; };
+		63CC58FEF58F18C1F0656119 /* ROBBubbleConsole.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF76FC6200024EF73E7F0480 /* ROBBubbleConsole.swift */; };
+		8261A0013DB82A9B75D933F8 /* ROBBubbleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3F56CA915373DE4D3671B3F /* ROBBubbleViewController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -188,6 +191,9 @@
 		EA87299420AB67D00015A7DF /* CoreML.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreML.framework; path = System/Library/Frameworks/CoreML.framework; sourceTree = SDKROOT; };
 		EA8729A220AB79690015A7DF /* Vision.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Vision.framework; path = System/Library/Frameworks/Vision.framework; sourceTree = SDKROOT; };
 		EA8729A420AB7CF20015A7DF /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
+		4D149252C2727BBC0FD1CDC4 /* ROBBubbleProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ROBBubbleProtocol.swift; sourceTree = "<group>"; };
+		FF76FC6200024EF73E7F0480 /* ROBBubbleConsole.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ROBBubbleConsole.swift; sourceTree = "<group>"; };
+		B3F56CA915373DE4D3671B3F /* ROBBubbleViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ROBBubbleViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -282,6 +288,9 @@
 				D4AF00042F51000100000001 /* ROBRemoteDesktopViewController.swift */,
 				D4AF00062F51000100000001 /* ROBAdministratorWorkspaceViewController.swift */,
 				D4F011012F6A011000000001 /* ROBFollowTargetViewController.swift */,
+				B3F56CA915373DE4D3671B3F /* ROBBubbleViewController.swift */,
+				FF76FC6200024EF73E7F0480 /* ROBBubbleConsole.swift */,
+				4D149252C2727BBC0FD1CDC4 /* ROBBubbleProtocol.swift */,
 				EA8727E020A924C00015A7DF /* Main.storyboard */,
 				D4D049B62AC0BC820084EAFD /* Main_iPhone.storyboard */,
 				EA8727E520A924C20015A7DF /* LaunchScreen.storyboard */,
@@ -528,6 +537,9 @@
 				D4AF00022F51000100000001 /* ROBRemoteDesktopViewController.swift in Sources */,
 				D4AF00052F51000100000001 /* ROBAdministratorWorkspaceViewController.swift in Sources */,
 				D4F011022F6A011000000001 /* ROBFollowTargetViewController.swift in Sources */,
+				8261A0013DB82A9B75D933F8 /* ROBBubbleViewController.swift in Sources */,
+				63CC58FEF58F18C1F0656119 /* ROBBubbleConsole.swift in Sources */,
+				4D3FF2260D5003E6808AFD77 /* ROBBubbleProtocol.swift in Sources */,
 				EA87280A20A9256E0015A7DF /* CAXException.cpp in Sources */,
 				D4DD62E52E371CB200844D2B /* RPLidarMapController.swift in Sources */,
 				EA8727FF20A925570015A7DF /* FFTHelper.cpp in Sources */,

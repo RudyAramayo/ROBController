@@ -7,8 +7,9 @@ import UIKit
     private let terminal = ROBAdministratorTerminalViewController()
     private let desktop = ROBRemoteDesktopViewController()
     private let follow = ROBFollowTargetViewController()
+    private let bubbles = ROBBubbleViewController()
     private let switcher = UIView()
-    private let selector = UISegmentedControl(items: ["Terminal", "Desktop", "Follow"])
+    private let selector = UISegmentedControl(items: ["Terminal", "Desktop", "Follow", "Bubbles"])
     private let contentView = UIView()
     private var selectedController: UIViewController?
     private var switcherHeightConstraint: NSLayoutConstraint?
@@ -66,16 +67,19 @@ import UIKit
         terminal.bindAutoNetClient(client)
         desktop.bindAutoNetClient(client)
         follow.bindAutoNetClient(client)
+        bubbles.bindAutoNetClient(client)
     }
 
     public func setConnectionAvailable(_ available: Bool) {
         terminal.setConnectionAvailable(available)
         desktop.setConnectionAvailable(available)
         follow.setConnectionAvailable(available)
+        bubbles.setConnectionAvailable(available)
     }
 
     public func handleIncomingData(_ data: Data) -> Bool {
         follow.handleIncomingData(data)
+            || bubbles.handleIncomingData(data)
             || terminal.handleIncomingData(data)
             || desktop.handleIncomingData(data)
     }
@@ -93,6 +97,7 @@ import UIKit
         switch selector.selectedSegmentIndex {
         case 1: controller = desktop
         case 2: controller = follow
+        case 3: controller = bubbles
         default: controller = terminal
         }
         show(controller, animated: true)
