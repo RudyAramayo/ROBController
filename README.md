@@ -1,6 +1,10 @@
 # ROBController
 This is the controller software for my droid R.O.B.
 
+For wireless iPhone development, use the **ROBController Wireless** scheme to
+run the Debug build without LLDB attached. See [wireless debugging](docs/wireless-debugging.md)
+for the startup-stutter comparison and normal breakpoint debugging.
+
 On iPhone, open **Auto → Open Follow Mode** (also **Admin → Follow**), tap **Refresh
 Main-Camera Preview**, select an outlined person, then **Authorize Selected
 Person**. Authorization can start physical motion; test only under operator

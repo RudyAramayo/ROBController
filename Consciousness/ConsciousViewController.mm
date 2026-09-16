@@ -1046,6 +1046,7 @@ typedef NS_ENUM(NSUInteger, ROBControlAuthorityState) {
 
     UIButton *reconnect = [self controlButtonWithTitle:@"Reconnect" selector:@selector(reconnectAutoNet:) events:UIControlEventTouchUpInside];
     reconnect.accessibilityHint = @"Reconnect to the paired Cerebro controller";
+    reconnect.accessibilityIdentifier = @"reconnectCerebroButton";
     UIView *indicator = [UIView new];
     indicator.translatesAutoresizingMaskIntoConstraints = NO;
     indicator.backgroundColor = UIColor.systemGrayColor;
@@ -1058,7 +1059,7 @@ typedef NS_ENUM(NSUInteger, ROBControlAuthorityState) {
 
     UILabel *linkLabel = [UILabel new];
     linkLabel.text = @"ROBOT OFFLINE";
-    linkLabel.numberOfLines = 2;
+    linkLabel.numberOfLines = 0;
     linkLabel.lineBreakMode = NSLineBreakByWordWrapping;
     linkLabel.font = [self usesIPadCommandConsole]
         ? [UIFont monospacedSystemFontOfSize:11 weight:UIFontWeightSemibold]
@@ -1066,15 +1067,25 @@ typedef NS_ENUM(NSUInteger, ROBControlAuthorityState) {
     linkLabel.textColor = [self usesIPadCommandConsole]
         ? [UIColor.whiteColor colorWithAlphaComponent:0.68]
         : UIColor.secondaryLabelColor;
+    linkLabel.adjustsFontForContentSizeCategory = YES;
+    linkLabel.accessibilityIdentifier = @"robotConnectionStatusLabel";
     self.connectionStatusLabel = linkLabel;
     UIButton *requestControl = [self controlButtonWithTitle:@"Request Control" selector:@selector(RequestToBeMasterControllerAction:) events:UIControlEventTouchUpInside];
     requestControl.accessibilityIdentifier = @"requestRobotControlButton";
     self.requestControlButton = requestControl;
-    UIStackView *topRow = [[UIStackView alloc] initWithArrangedSubviews:@[reconnect, indicator, linkLabel, [UIView new], requestControl]];
+    // Give phone actions their own row: a long authority or pairing status must
+    // never compress Request Control outside the overlay's hit-test bounds.
+    NSArray<UIView *> *statusViews = [self usesIPadCommandConsole]
+        ? @[reconnect, indicator, linkLabel, [UIView new], requestControl]
+        : @[indicator, linkLabel];
+    UIStackView *topRow = [[UIStackView alloc] initWithArrangedSubviews:statusViews];
     topRow.axis = UILayoutConstraintAxisHorizontal;
     topRow.alignment = UIStackViewAlignmentCenter;
     topRow.spacing = 8;
     [content addArrangedSubview:topRow];
+    if (![self usesIPadCommandConsole]) {
+        [content addArrangedSubview:[self equalRowWithViews:@[reconnect, requestControl]]];
+    }
 
     UILabel *position = [UILabel new];
     position.text = @"x:0.00  y:0.00  z:0.00";
@@ -1098,8 +1109,8 @@ typedef NS_ENUM(NSUInteger, ROBControlAuthorityState) {
     [content addArrangedSubview:telemetry];
 
     [NSLayoutConstraint activateConstraints:@[
-        [content.leadingAnchor constraintEqualToAnchor:overlay.contentView.leadingAnchor],
-        [content.trailingAnchor constraintEqualToAnchor:overlay.contentView.trailingAnchor],
+        [content.leadingAnchor constraintEqualToAnchor:overlay.contentView.safeAreaLayoutGuide.leadingAnchor],
+        [content.trailingAnchor constraintEqualToAnchor:overlay.contentView.safeAreaLayoutGuide.trailingAnchor],
         [content.topAnchor constraintEqualToAnchor:overlay.contentView.topAnchor],
         [content.bottomAnchor constraintEqualToAnchor:overlay.contentView.bottomAnchor]
     ]];
@@ -1164,7 +1175,6 @@ typedef NS_ENUM(NSUInteger, ROBControlAuthorityState) {
         [overlay.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
         [overlay.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
         [overlay.topAnchor constraintEqualToAnchor:safe.topAnchor],
-        [overlay.heightAnchor constraintEqualToConstant:82],
         [tabs.view.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
         [tabs.view.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
         [tabs.view.topAnchor constraintEqualToAnchor:overlay.bottomAnchor],
@@ -2759,6 +2769,10 @@ didSelectDestinationLatitude:(double)latitude
     NSString *buttonTitle = @"Request Control";
     BOOL buttonEnabled = connected;
 
+    if (!connected && self.autoNetClient.connectionFailureDescription.length > 0) {
+        status = self.autoNetClient.connectionFailureDescription;
+    }
+
     if (connected) {
         switch (self.controlAuthorityState) {
             case ROBControlAuthorityStateRequesting:
@@ -2799,8 +2813,6 @@ didSelectDestinationLatitude:(double)latitude
     self.chatConnectionStatus.accessibilityLabel = status;
     self.connectionStatusLabel.text = status;
     self.connectionStatusLabel.textColor = color;
-    self.connectionStatusLabel.adjustsFontSizeToFitWidth = YES;
-    self.connectionStatusLabel.minimumScaleFactor = 0.68;
     [self.requestControlButton setTitle:buttonTitle forState:UIControlStateNormal];
     self.requestControlButton.enabled = buttonEnabled;
 }

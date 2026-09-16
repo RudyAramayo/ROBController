@@ -591,6 +591,11 @@ enum ROBRemoteDesktopControlProtocol {
   }
 }
 
+enum ROBControlAuthenticationPhase {
+  case awaitingChallenge
+  case awaitingAcceptance
+}
+
 enum AutoNetTransportError: LocalizedError {
   case unsupportedService(String)
   case legacyDisabled
@@ -600,6 +605,8 @@ enum AutoNetTransportError: LocalizedError {
   case randomGeneration(OSStatus)
   case identityUnavailable(String)
   case authenticationFailed
+  case authenticationTimedOut(ROBControlAuthenticationPhase)
+  case pairingRejected
   case listenerUnavailable
 
   var errorDescription: String? {
@@ -620,7 +627,13 @@ enum AutoNetTransportError: LocalizedError {
     case .identityUnavailable(let detail):
       return "Unable to load the robot-control TLS identity: \(detail)"
     case .authenticationFailed:
-      return "The ROBController pairing proof was rejected."
+      return "Could not verify Cerebro's pairing response."
+    case .authenticationTimedOut(.awaitingChallenge):
+      return "Pairing timed out waiting for Cerebro's challenge."
+    case .authenticationTimedOut(.awaitingAcceptance):
+      return "Pairing timed out waiting for Cerebro to confirm the proof."
+    case .pairingRejected:
+      return "Cerebro rejected this pairing attempt. Check the controller pairing in Cerebro."
     case .listenerUnavailable:
       return "The robot-control listener could not be created."
     }

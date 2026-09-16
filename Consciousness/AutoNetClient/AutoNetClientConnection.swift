@@ -115,7 +115,15 @@ final class AutoNetClientConnection {
         }
         authenticationState = .awaitingChallenge
         let timeout = DispatchWorkItem { [weak self] in
-            self?.stopLocked(error: AutoNetTransportError.authenticationFailed)
+            guard let self else { return }
+            switch self.authenticationState {
+            case .awaitingChallenge:
+                self.stopLocked(error: AutoNetTransportError.authenticationTimedOut(.awaitingChallenge))
+            case .awaitingAccepted:
+                self.stopLocked(error: AutoNetTransportError.authenticationTimedOut(.awaitingAcceptance))
+            case .transportConnecting, .authenticated, .stopped:
+                break
+            }
         }
         authenticationTimeoutWorkItem = timeout
         queue.asyncAfter(deadline: .now() + Self.authenticationTimeout, execute: timeout)
@@ -191,6 +199,11 @@ final class AutoNetClientConnection {
             return
         }
 
+        if type == .pairingRejected {
+            stopLocked(error: AutoNetTransportError.pairingRejected)
+            return
+        }
+
         switch authenticationState {
         case .awaitingChallenge:
             guard type == .pairingChallenge,
@@ -200,11 +213,17 @@ final class AutoNetClientConnection {
                 return
             }
             do {
+                print("client: Cerebro challenge received; preparing pairing proof")
                 let proof = try ROBControlAuthenticator.makeProof(challenge: challenge, credential: credential)
                 authenticationState = .awaitingAccepted(challenge, proof)
                 sendFrame(type: .pairingProof, data: proof.encoded) { [weak self] error in
                     guard let self else { return }
-                    if let error { self.stopLocked(error: error) } else { self.receiveNextMessage() }
+                    if let error {
+                        self.stopLocked(error: error)
+                    } else {
+                        print("client: pairing proof sent; awaiting Cerebro confirmation")
+                        self.receiveNextMessage()
+                    }
                 }
             } catch {
                 stopLocked(error: error)

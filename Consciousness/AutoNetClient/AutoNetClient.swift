@@ -15,7 +15,8 @@ import Network
 
     /// Reports authenticated application readiness, not merely QUIC/TLS state.
     /// The callback is delivered on the main queue and is also sent when the
-    /// delegate is installed so Objective-C callers can initialize their UI.
+    /// delegate is installed or a disconnected failure description changes so
+    /// Objective-C callers can keep their connection status UI current.
     @objc optional func autoNetClient(
         _ client: AutoNetClient,
         didChangeConnectionState isConnected: Bool
@@ -42,6 +43,15 @@ import Network
         didSet {
             guard oldValue != isConnected else { return }
             notifyConnectionState(isConnected)
+        }
+    }
+    /// Last failed attempt, retained during automatic retries. It is cleared
+    /// by a successful connection or an explicit reconnect/pairing change.
+    public private(set) var connectionFailureDescription: String? {
+        didSet {
+            if oldValue != connectionFailureDescription, !isConnected {
+                notifyConnectionState(false)
+            }
         }
     }
     public weak var dataDelegate: AutoNetClientDataDelegate? {
@@ -181,6 +191,7 @@ import Network
             self.isExplicitlyStopped = true
             self.generation &+= 1
             self.isConnected = false
+            self.connectionFailureDescription = nil
 
             self.browser?.stateUpdateHandler = nil
             self.browser?.browseResultsChangedHandler = nil
@@ -235,6 +246,7 @@ import Network
             mode = try AutoNetTransportMode(service: service)
         } catch {
             isConnected = false
+            connectionFailureDescription = error.localizedDescription
             print("client: \(error.localizedDescription)")
             return
         }
@@ -242,6 +254,7 @@ import Network
         isExplicitlyStopped = false
         if resetBackoff {
             reconnectAttempt = 0
+            connectionFailureDescription = nil
         }
         generation &+= 1
         let currentGeneration = generation
@@ -273,8 +286,10 @@ import Network
                     print("client: Bonjour browser ready for \(service)")
                 case .waiting(let error):
                     self.isConnected = false
+                    self.connectionFailureDescription = error.localizedDescription
                     print("client: Bonjour browser waiting - \(error)")
                 case .failed(let error):
+                    self.connectionFailureDescription = error.localizedDescription
                     print("client: browser failed - \(error)")
                     newBrowser.cancel()
                     self.browser = nil
@@ -363,6 +378,7 @@ import Network
         isExplicitlyStopped = false
         if resetBackoff {
             reconnectAttempt = 0
+            connectionFailureDescription = nil
         }
         generation &+= 1
         let currentGeneration = generation
@@ -382,6 +398,7 @@ import Network
                 startImmediately: startImmediately
             )
         } catch {
+            connectionFailureDescription = error.localizedDescription
             print("client: manual QUIC connection not started - \(error.localizedDescription)")
         }
     }
@@ -412,6 +429,7 @@ import Network
         } catch {
             // Pairing/authentication failure is terminal for this attempt. A v2
             // connection never retries through the legacy Bonjour service.
+            connectionFailureDescription = error.localizedDescription
             print("client: connection not started - \(error.localizedDescription)")
         }
     }
@@ -438,6 +456,7 @@ import Network
                       self.connection === clientConnection else { return }
                 self.isConnected = ready
                 if ready {
+                    self.connectionFailureDescription = nil
                     self.reconnectAttempt = 0
                     self.browser?.stateUpdateHandler = nil
                     self.browser?.browseResultsChangedHandler = nil
@@ -455,6 +474,7 @@ import Network
                       self.connection === clientConnection else { return }
                 self.isConnected = false
                 self.connection = nil
+                self.connectionFailureDescription = error?.localizedDescription
                 if let error {
                     print("client: connection stopped - \(error.localizedDescription)")
                 }
