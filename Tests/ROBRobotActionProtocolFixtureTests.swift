@@ -13,6 +13,7 @@ private enum FixtureFailure: Error, CustomStringConvertible {
 @main
 struct ROBRobotActionProtocolFixtureTests {
     static func main() throws {
+        try armOperationApproval()
         try testControllerHelloRoundTrip()
         try testRequestRoundTrip()
         try testStatusAndCancellationRoundTrip()
@@ -310,6 +311,21 @@ struct ROBRobotActionProtocolFixtureTests {
             "Could not decode autonomy stop"
         )
         try expect(decodedStop.kind == .stop && decodedStop.sequence == 2, "Autonomy stop changed")
+    }
+
+    private static func armOperationApproval() throws {
+        let request = ROBRobotActionMessage.actionRequest(callID: "arm-operation", action: "arm_operation",
+            arguments: ["operation": "relax", "arm": "both", "summary": "Lower gently then deactivate"],
+            senderID: "Cerebro.arm-operations", recipientID: "iphone", expiresAt: Date().addingTimeInterval(30))
+        let decoded = try roundTrip(request)
+        try expect(decoded.action == "arm_operation" && decoded.arguments == request.arguments, "Arm approval changed during transport")
+        for extra in [["force": 999], ["operation": "arbitrary"], ["arm": "unknown"]] as [[String: Any]] {
+            let arguments = request.arguments.mutableCopy() as! NSMutableDictionary
+            arguments.addEntries(from: extra)
+            let invalid = ROBRobotActionMessage.actionRequest(callID: "invalid-arm", action: "arm_operation", arguments: arguments,
+                senderID: request.senderID, recipientID: "iphone", expiresAt: Date().addingTimeInterval(30))
+            try expect(invalid.validationError != nil, "Unsafe arm arguments were accepted")
+        }
     }
 
     private static func roundTrip(_ message: ROBRobotActionMessage) throws -> ROBRobotActionMessage {

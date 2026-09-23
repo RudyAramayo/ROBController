@@ -2869,7 +2869,8 @@ didSelectDestinationLatitude:(double)latitude
                                         @"request_pick",
                                         @"navigate_relative",
                                         @"stop_motion",
-                                        @"run_startup_test"
+                                        @"run_startup_test",
+                                        @"arm_operation"
                                     ]];
     self.didAnnounceRobotActionConsole = [self sendRobotActionMessage:hello];
 }
@@ -2991,8 +2992,8 @@ didSelectDestinationLatitude:(double)latitude
 
 - (void)refreshRobotActionConsole
 {
-    self.robotActionSafetyLabel.text = @"APPROVE STARTUP ONLY WITH A CLEAR ZONE AND E-STOP READY — BUTTONS SEND AUTHORIZATION, NOT JOINT VALUES";
-    [self.robotActionsEnabledButton setTitle:(self.robotActionsEnabled ? @"AI Actions: On" : @"AI Actions: Off")
+    self.robotActionSafetyLabel.text = @"APPROVE ARM OPERATIONS WITH A CLEAR WORKSPACE AND E-STOP READY — ONE APPROVAL PER OPERATION";
+    [self.robotActionsEnabledButton setTitle:(self.robotActionsEnabled ? @"Action Approvals: On" : @"Action Approvals: Off")
                                     forState:UIControlStateNormal];
 
     BOOL pending = self.robotActionsEnabled && self.currentRobotActionState == ROBRobotActionStatePending;
@@ -3001,7 +3002,8 @@ didSelectDestinationLatitude:(double)latitude
          self.currentRobotActionState == ROBRobotActionStateExecuting);
     ROBRobotActionMessage *request = self.currentRobotActionRequest;
     BOOL cerebroOwnsCompletion = [request.action isEqualToString:@"play_gesture"] ||
-        [request.action isEqualToString:@"run_startup_test"];
+        [request.action isEqualToString:@"run_startup_test"] ||
+        [request.action isEqualToString:@"arm_operation"];
     self.robotActionApproveButton.enabled = pending;
     self.robotActionRejectButton.enabled = pending;
     self.robotActionCompleteButton.enabled = accepted && !cerebroOwnsCompletion;
@@ -3017,7 +3019,7 @@ didSelectDestinationLatitude:(double)latitude
 
     NSString *action = [request.action isEqualToString:@"run_startup_test"]
         ? @"LIVE STARTUP TEST"
-        : (request.action.length > 0 ? request.action : @"unknown action");
+        : ([request.action isEqualToString:@"arm_operation"] ? @"ARM OPERATION" : (request.action.length > 0 ? request.action : @"unknown action"));
     NSString *stateName = [self displayNameForRobotActionState:self.currentRobotActionState];
     if (cerebroOwnsCompletion && self.currentRobotActionState == ROBRobotActionStateAccepted) {
         stateName = @"APPROVED — CEREBRO STARTING";
@@ -3032,9 +3034,9 @@ didSelectDestinationLatitude:(double)latitude
                                                        callID:request.callID];
     ROBRobotActionMessage *latestStatus = self.robotActionLastStatusByLedgerKey[ledgerKey];
     NSString *detail = latestStatus.detail.length > 0 ? latestStatus.detail : @"Awaiting operator decision.";
-    self.robotActionDetailLabel.text = [NSString stringWithFormat:@"%@  Arguments: %@",
-                                        detail,
-                                        [self summaryForRobotActionArguments:request.arguments]];
+    NSString *summary = [request.action isEqualToString:@"arm_operation"]
+        ? request.arguments[@"summary"] : [self summaryForRobotActionArguments:request.arguments];
+    self.robotActionDetailLabel.text = [NSString stringWithFormat:@"%@\n%@", summary, detail];
 }
 
 - (void)scheduleExpiryForRobotActionRequest:(ROBRobotActionMessage *)request
@@ -3336,7 +3338,8 @@ didSelectDestinationLatitude:(double)latitude
     self.robotActionExpiryTimer = nil;
     self.currentRobotActionState = ROBRobotActionStateAccepted;
     BOOL cerebroOwnedAction = [request.action isEqualToString:@"play_gesture"] ||
-        [request.action isEqualToString:@"run_startup_test"];
+        [request.action isEqualToString:@"run_startup_test"] ||
+        [request.action isEqualToString:@"arm_operation"];
     NSString *approvalDetail = cerebroOwnedAction
         ? @"Operator authorized one immediate Cerebro-owned run with the exclusion zone clear and physical E-stop ready."
         : @"Operator approved. Perform the action manually; this console does not actuate hardware.";
@@ -3365,6 +3368,9 @@ didSelectDestinationLatitude:(double)latitude
 
 - (IBAction)completeRobotAction:(id)sender
 {
+    NSString *action = self.currentRobotActionRequest.action;
+    if ([action isEqualToString:@"play_gesture"] || [action isEqualToString:@"run_startup_test"] ||
+        [action isEqualToString:@"arm_operation"]) { return; } // Cerebro reports hardware outcomes.
     if (self.currentRobotActionRequest == nil ||
         (self.currentRobotActionState != ROBRobotActionStateAccepted &&
          self.currentRobotActionState != ROBRobotActionStateExecuting)) {
@@ -3384,6 +3390,9 @@ didSelectDestinationLatitude:(double)latitude
 
 - (IBAction)failRobotAction:(id)sender
 {
+    NSString *action = self.currentRobotActionRequest.action;
+    if ([action isEqualToString:@"play_gesture"] || [action isEqualToString:@"run_startup_test"] ||
+        [action isEqualToString:@"arm_operation"]) { return; } // Cerebro reports hardware outcomes.
     if (self.currentRobotActionRequest == nil ||
         (self.currentRobotActionState != ROBRobotActionStateAccepted &&
          self.currentRobotActionState != ROBRobotActionStateExecuting)) {
@@ -3409,15 +3418,20 @@ didSelectDestinationLatitude:(double)latitude
          self.currentRobotActionState != ROBRobotActionStateExecuting)) {
         return;
     }
-    BOOL operatorConfirmedPhysicalStop =
+    BOOL cerebroOwnedAction = [self.currentRobotActionRequest.action isEqualToString:@"arm_operation"] ||
+        [self.currentRobotActionRequest.action isEqualToString:@"play_gesture"] ||
+        [self.currentRobotActionRequest.action isEqualToString:@"run_startup_test"];
+    BOOL operatorConfirmedPhysicalStop = !cerebroOwnedAction && (
         self.currentRobotActionState == ROBRobotActionStateAccepted ||
-        self.currentRobotActionState == ROBRobotActionStateExecuting;
+        self.currentRobotActionState == ROBRobotActionStateExecuting);
     [self.robotActionExpiryTimer invalidate];
     self.robotActionExpiryTimer = nil;
     self.currentRobotActionState = ROBRobotActionStateCancelled;
     [self sendRobotActionStatusForRequest:self.currentRobotActionRequest
                                    state:ROBRobotActionStateCancelled
-                                  detail:(operatorConfirmedPhysicalStop
+                                  detail:(cerebroOwnedAction
+                                      ? @"Operator requested cancellation and hold; Cerebro reports the hardware outcome."
+                                      : operatorConfirmedPhysicalStop
                                       ? @"Operator confirmed that the manual action stopped or was safely cancelled."
                                       : @"Operator cancelled the pending request before approval. No hardware was actuated.")
                                   result:@{
