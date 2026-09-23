@@ -11,6 +11,7 @@
 #import "DaydreamView.h"
 
 #import <AVFoundation/AVFoundation.h>
+#import <AudioToolbox/AudioToolbox.h>
 #import <Speech/Speech.h>
 #import <CoreLocation/CoreLocation.h>
 #import <CoreML/CoreML.h>
@@ -156,6 +157,13 @@ typedef NS_ENUM(NSUInteger, ROBControlAuthorityState) {
 @property (nonatomic, strong) NSMutableArray<NSString *> *robotActionStatusLedgerKeyOrder;
 @property (nonatomic, strong) NSTimer *robotActionExpiryTimer;
 @property (nonatomic, strong) NSTimer *robotActionHelloTimer;
+@property (nonatomic, strong) UIButton *robotActionNoticeBanner;
+@property (nonatomic, strong) NSTimer *robotActionNoticeTimer;
+@property (nonatomic, copy) NSString *robotActionNoticeLedgerKey;
+@property (nonatomic, assign) NSTimeInterval robotActionNoticeStartedAt;
+@property (nonatomic, assign) BOOL robotActionNoticeReminderPlayed;
+@property (nonatomic, assign) SystemSoundID robotActionNoticeSound;
+@property (nonatomic, strong) UINotificationFeedbackGenerator *robotActionNoticeHaptics;
 @property (nonatomic, assign) BOOL didAnnounceRobotActionConsole;
 @property (nonatomic, assign) BOOL robotActionsEnabled;
 
@@ -990,6 +998,11 @@ typedef NS_ENUM(NSUInteger, ROBControlAuthorityState) {
     [controller.view addSubview:pair];
     self.pairControllerButton = pair;
 
+    UIButton *testApprovalAlert = [self controlButtonWithTitle:@"Test AI Approval Sound + Vibration"
+        selector:@selector(testRobotActionNotice:) events:UIControlEventTouchUpInside];
+    testApprovalAlert.accessibilityIdentifier = @"testAIApprovalAlert";
+    [controller.view addSubview:testApprovalAlert];
+
     UILabel *languageTitle = [self sectionLabelWithText:@"Speech and output language"];
     languageTitle.translatesAutoresizingMaskIntoConstraints = NO;
     [controller.view addSubview:languageTitle];
@@ -1012,9 +1025,12 @@ typedef NS_ENUM(NSUInteger, ROBControlAuthorityState) {
         [pair.leadingAnchor constraintEqualToAnchor:settingsTitle.leadingAnchor],
         [pair.trailingAnchor constraintEqualToAnchor:settingsTitle.trailingAnchor],
         [pair.topAnchor constraintEqualToAnchor:settingsTitle.bottomAnchor constant:8],
+        [testApprovalAlert.leadingAnchor constraintEqualToAnchor:pair.leadingAnchor],
+        [testApprovalAlert.trailingAnchor constraintEqualToAnchor:pair.trailingAnchor],
+        [testApprovalAlert.topAnchor constraintEqualToAnchor:pair.bottomAnchor constant:8],
         [languageTitle.leadingAnchor constraintEqualToAnchor:settingsTitle.leadingAnchor],
         [languageTitle.trailingAnchor constraintEqualToAnchor:settingsTitle.trailingAnchor],
-        [languageTitle.topAnchor constraintEqualToAnchor:pair.bottomAnchor constant:18],
+        [languageTitle.topAnchor constraintEqualToAnchor:testApprovalAlert.bottomAnchor constant:18],
         [languageTable.leadingAnchor constraintEqualToAnchor:controller.view.leadingAnchor],
         [languageTable.trailingAnchor constraintEqualToAnchor:controller.view.trailingAnchor],
         [languageTable.topAnchor constraintEqualToAnchor:languageTitle.bottomAnchor constant:4],
@@ -1043,6 +1059,22 @@ typedef NS_ENUM(NSUInteger, ROBControlAuthorityState) {
     content.layoutMargins = UIEdgeInsetsMake(6, 10, 6, 10);
     content.layoutMarginsRelativeArrangement = YES;
     [overlay.contentView addSubview:content];
+
+    UIButton *approvalNotice = [UIButton buttonWithType:UIButtonTypeSystem];
+    approvalNotice.backgroundColor = UIColor.systemOrangeColor;
+    [approvalNotice setTitleColor:UIColor.blackColor forState:UIControlStateNormal];
+    approvalNotice.layer.cornerRadius = 10;
+    approvalNotice.contentEdgeInsets = UIEdgeInsetsMake(10, 12, 10, 12);
+    approvalNotice.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
+    approvalNotice.titleLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleHeadline];
+    approvalNotice.titleLabel.adjustsFontForContentSizeCategory = YES;
+    approvalNotice.titleLabel.numberOfLines = 3;
+    approvalNotice.accessibilityIdentifier = @"aiApprovalNotice";
+    approvalNotice.accessibilityHint = @"Opens the action details and approval controls. Does not approve the action.";
+    [approvalNotice addTarget:self action:@selector(reviewRobotActionNotice:) forControlEvents:UIControlEventTouchUpInside];
+    approvalNotice.hidden = YES;
+    self.robotActionNoticeBanner = approvalNotice;
+    [content addArrangedSubview:approvalNotice];
 
     UIButton *reconnect = [self controlButtonWithTitle:@"Reconnect" selector:@selector(reconnectAutoNet:) events:UIControlEventTouchUpInside];
     reconnect.accessibilityHint = @"Reconnect to the paired Cerebro controller";
@@ -2990,8 +3022,103 @@ didSelectDestinationLatitude:(double)latitude
     return summary;
 }
 
+- (void)playRobotActionNoticeCue
+{
+    if (self.robotActionNoticeSound == 0) {
+        NSURL *url = [NSBundle.mainBundle URLForResource:@"ai_approval" withExtension:@"wav"];
+        SystemSoundID sound = 0;
+        if (url != nil && AudioServicesCreateSystemSoundID((__bridge CFURLRef)url, &sound) == kAudioServicesNoError) {
+            self.robotActionNoticeSound = sound;
+        }
+    }
+    // Use the system sound service without reconfiguring the speech session.
+    // Device sound/haptic settings still apply; the banner remains visible.
+    if (self.robotActionNoticeSound != 0) {
+        AudioServicesPlaySystemSoundWithCompletion(self.robotActionNoticeSound, nil);
+    }
+    if (self.robotActionNoticeHaptics == nil) {
+        self.robotActionNoticeHaptics = [UINotificationFeedbackGenerator new];
+    }
+    [self.robotActionNoticeHaptics notificationOccurred:UINotificationFeedbackTypeWarning];
+}
+
+- (IBAction)testRobotActionNotice:(id)sender
+{
+    [self playRobotActionNoticeCue];
+    UIAccessibilityPostNotification(UIAccessibilityAnnouncementNotification, @"Test AI approval sound and vibration. No action requested.");
+}
+
+- (void)refreshRobotActionNotice
+{
+    ROBRobotActionMessage *request = self.currentRobotActionRequest;
+    BOOL pending = request != nil && self.robotActionsEnabled && self.autoNetClient.isConnected &&
+        self.currentRobotActionState == ROBRobotActionStatePending &&
+        UIApplication.sharedApplication.applicationState == UIApplicationStateActive;
+    if (pending && request.isExpired) {
+        [self expirePendingRobotActionRequest:request];
+        return;
+    }
+    self.robotActionNoticeBanner.hidden = !pending;
+    if (!pending) {
+        [self.robotActionNoticeTimer invalidate];
+        self.robotActionNoticeTimer = nil;
+        self.robotActionNoticeLedgerKey = nil;
+        return;
+    }
+
+    NSString *key = [self robotActionLedgerKeyForPeerID:request.senderID callID:request.callID];
+    NSString *summary = [request.arguments[@"summary"] isKindOfClass:NSString.class]
+        ? request.arguments[@"summary"] : request.action;
+    if (summary.length > 100) { summary = [[summary substringToIndex:100] stringByAppendingString:@"…"]; }
+    NSTimeInterval remaining = ((double)request.expiresAtMilliseconds / 1000.0) - NSDate.date.timeIntervalSince1970;
+    NSString *actionName = [request.action stringByReplacingOccurrencesOfString:@"_" withString:@" "];
+    [self.robotActionNoticeBanner setTitle:[NSString stringWithFormat:
+        @"AI APPROVAL REQUESTED · %lds\nTap to review %@", (long)ceil(MAX(0, remaining)), actionName ?: @"robot action"]
+                                 forState:UIControlStateNormal];
+
+    // Repeated packets/status refreshes never replay the initial cue or reset
+    // the reminder. The existing peer+call ledger rejects completed replays.
+    NSTimeInterval now = NSProcessInfo.processInfo.systemUptime;
+    if (![self.robotActionNoticeLedgerKey isEqualToString:key]) {
+        self.robotActionNoticeLedgerKey = key;
+        self.robotActionNoticeStartedAt = now;
+        self.robotActionNoticeReminderPlayed = NO;
+        [self playRobotActionNoticeCue];
+        UIAccessibilityPostNotification(UIAccessibilityAnnouncementNotification,
+            [NSString stringWithFormat:@"AI approval requested. %@. Tap the approval banner to review.", summary ?: @"Robot action"]);
+        [self.robotActionNoticeTimer invalidate];
+        __weak ConsciousViewController *weakSelf = self;
+        self.robotActionNoticeTimer = [NSTimer timerWithTimeInterval:0.5 repeats:YES block:^(NSTimer *timer) {
+            [weakSelf refreshRobotActionNotice];
+        }];
+        // Keep countdown/expiry responsive while a scroll view is tracking.
+        [NSRunLoop.mainRunLoop addTimer:self.robotActionNoticeTimer forMode:NSRunLoopCommonModes];
+    } else if (!self.robotActionNoticeReminderPlayed && now - self.robotActionNoticeStartedAt >= 10.0) {
+        self.robotActionNoticeReminderPlayed = YES;
+        [self playRobotActionNoticeCue];
+    }
+}
+
+- (IBAction)reviewRobotActionNotice:(id)sender
+{
+    [self refreshRobotActionNotice];
+    if (self.robotActionNoticeBanner.hidden) { return; }
+    self.robotTabBarController.selectedIndex = [self usesIPadCommandConsole] ? 0 : 2;
+    [self.view layoutIfNeeded];
+    UIView *ancestor = self.robotActionPanel.superview;
+    while (ancestor != nil && ![ancestor isKindOfClass:UIScrollView.class]) {
+        ancestor = ancestor.superview;
+    }
+    if ([ancestor isKindOfClass:UIScrollView.class]) {
+        UIScrollView *scroll = (UIScrollView *)ancestor;
+        [scroll scrollRectToVisible:[self.robotActionPanel convertRect:self.robotActionPanel.bounds toView:scroll] animated:YES];
+    }
+    UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, self.robotActionTitleLabel);
+}
+
 - (void)refreshRobotActionConsole
 {
+    [self refreshRobotActionNotice];
     self.robotActionSafetyLabel.text = @"APPROVE ARM OPERATIONS WITH A CLEAR WORKSPACE AND E-STOP READY — ONE APPROVAL PER OPERATION";
     [self.robotActionsEnabledButton setTitle:(self.robotActionsEnabled ? @"Action Approvals: On" : @"Action Approvals: Off")
                                     forState:UIControlStateNormal];
@@ -3463,6 +3590,9 @@ didSelectDestinationLatitude:(double)latitude
     self.controlAuthorityState = isConnected
         ? ROBControlAuthorityStateUnknown
         : ROBControlAuthorityStateDisconnected;
+    if (!isConnected) {
+        [self setRobotActionsEnabled:NO reason:@"Controller disconnected; pending approval cancelled"];
+    }
     [self.administratorWorkspaceViewController setConnectionAvailable:isConnected];
     [self refreshAutonomyConsole];
 }
@@ -3734,6 +3864,10 @@ didSelectDestinationLatitude:(double)latitude
     [self stopSpeechRecognition];
     [self.robotActionExpiryTimer invalidate];
     [self.robotActionHelloTimer invalidate];
+    [self.robotActionNoticeTimer invalidate];
+    if (self.robotActionNoticeSound != 0) {
+        AudioServicesDisposeSystemSoundID(self.robotActionNoticeSound);
+    }
     [self.treadControlHeartbeatTimer invalidate];
     [self.controlAuthorityRequestTimer invalidate];
     [[NSNotificationCenter defaultCenter] removeObserver:self];

@@ -1,6 +1,21 @@
 # ROBController
 This is the controller software for my droid R.O.B.
 
+With **Action Approvals** enabled in the foreground, a new AI request plays a
+short two-note ping, gives a warning haptic on supported iPhones, and shows an
+orange **AI APPROVAL REQUESTED** banner above every tab with the time remaining.
+Tap the banner to review the full operation and choose Approve or Reject. One
+sound/haptic reminder follows after ten seconds if the request is still pending;
+duplicate packets do not restart alerts. Alerts end on approval, rejection,
+cancellation, expiry, disconnect or leaving the foreground. The banner never
+grants permission itself. Device sound/haptic settings apply; use **Settings →
+Test AI Approval Sound + Vibration** to check them without requesting motion.
+
+`python3 Tests/ROBApprovalNoticeRuntimeTests.py` exercises the production notice
+lifecycle with inert UI/audio/transport substitutes: duplicate refreshes, one
+reminder, expiry, terminal-state cleanup, disconnect and background suppression.
+It does not send robot commands or establish physical sound/haptic output.
+
 For wireless iPhone development, use the **ROBController Wireless** scheme to
 run the Debug build without LLDB attached. See [wireless debugging](docs/wireless-debugging.md)
 for the startup-stutter comparison and normal breakpoint debugging.

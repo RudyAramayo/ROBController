@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D4AA01012F7D000100000001 /* ai_approval.wav in Resources */ = {isa = PBXBuildFile; fileRef = D4AA01022F7D000100000001 /* ai_approval.wav */; };
 		D4AD00012F10000100000001 /* ROBAdministratorTerminalViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4AD00022F10000100000001 /* ROBAdministratorTerminalViewController.swift */; };
 		D4AD00032F10000100000001 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = D4AD00052F10000100000001 /* SwiftTerm */; };
 		D4AF00012F51000100000001 /* ROBRemoteDesktopVideoClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4AF00032F51000100000001 /* ROBRemoteDesktopVideoClient.swift */; };
@@ -111,6 +112,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D4AA01022F7D000100000001 /* ai_approval.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = ai_approval.wav; sourceTree = "<group>"; };
 		D4AD00022F10000100000001 /* ROBAdministratorTerminalViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ROBAdministratorTerminalViewController.swift; sourceTree = "<group>"; };
 		D4AF00032F51000100000001 /* ROBRemoteDesktopVideoClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ROBRemoteDesktopVideoClient.swift; sourceTree = "<group>"; };
 		D4AF00042F51000100000001 /* ROBRemoteDesktopViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ROBRemoteDesktopViewController.swift; sourceTree = "<group>"; };
@@ -357,6 +359,7 @@
 		EA87280D20A925730015A7DF /* audio */ = {
 			isa = PBXGroup;
 			children = (
+				D4AA01022F7D000100000001 /* ai_approval.wav */,
 				D4B110012F02000100000001 /* nextel_ptt_start.caf */,
 				D4B110022F02000100000001 /* motorola_ptt_end.caf */,
 				EA87281120A925B60015A7DF /* button_press.caf */,
@@ -497,6 +500,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D4AA01012F7D000100000001 /* ai_approval.wav in Resources */,
 				D4B110032F02000100000001 /* nextel_ptt_start.caf in Resources */,
 				D4B110042F02000100000001 /* motorola_ptt_end.caf in Resources */,
 				EA87281E20A925C60015A7DF /* sonogram.png in Resources */,
