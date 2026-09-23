@@ -168,6 +168,8 @@ typedef NS_ENUM(NSUInteger, ROBControlAuthorityState) {
 @property (nonatomic, assign) BOOL robotActionsEnabled;
 
 - (IBAction)toggleRobotActionsEnabled:(id)sender;
+- (void)restoreRobotActionRequestPreference;
+- (void)robotActionConsoleDidBecomeActive:(NSNotification *)notification;
 - (IBAction)approveRobotAction:(id)sender;
 - (IBAction)rejectRobotAction:(id)sender;
 - (IBAction)completeRobotAction:(id)sender;
@@ -1313,8 +1315,9 @@ typedef NS_ENUM(NSUInteger, ROBControlAuthorityState) {
     self.lact_GRAVITY_toggle = false;
     self.lact_FRONT_isDown = false;
 
-    // Physical-action requests require an explicit opt-in after every launch.
-    // Resigning active resets the opt-in and cancels any open request.
+    // Receiving requests is a global preference, not an execution grant.
+    // Keep it across reconnects; each operation still needs its own Approve tap.
+    [NSUserDefaults.standardUserDefaults registerDefaults:@{@"ROBAcceptActionApprovalRequests": @YES}];
     self.robotActionsEnabled = NO;
     self.currentRobotActionState = ROBRobotActionStateNone;
     self.robotActionLastStatusByLedgerKey = [NSMutableDictionary dictionary];
@@ -1332,6 +1335,10 @@ typedef NS_ENUM(NSUInteger, ROBControlAuthorityState) {
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(applicationWillResignActive:)
                                                  name:UIApplicationWillResignActiveNotification
+                                               object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(robotActionConsoleDidBecomeActive:)
+                                                 name:UIApplicationDidBecomeActiveNotification
                                                object:nil];
     [self refreshRobotActionConsole];
     [self refreshAutonomyConsole];
@@ -3120,7 +3127,10 @@ didSelectDestinationLatitude:(double)latitude
 {
     [self refreshRobotActionNotice];
     self.robotActionSafetyLabel.text = @"APPROVE ARM OPERATIONS WITH A CLEAR WORKSPACE AND E-STOP READY — ONE APPROVAL PER OPERATION";
-    [self.robotActionsEnabledButton setTitle:(self.robotActionsEnabled ? @"Action Approvals: On" : @"Action Approvals: Off")
+    BOOL wantsRequests = [NSUserDefaults.standardUserDefaults boolForKey:@"ROBAcceptActionApprovalRequests"];
+    NSString *approvalTitle = !wantsRequests ? @"Action Approvals: Off" :
+        (self.robotActionsEnabled ? @"Action Approvals: On" : @"Action Approvals: On (waiting for connection)");
+    [self.robotActionsEnabledButton setTitle:approvalTitle
                                     forState:UIControlStateNormal];
 
     BOOL pending = self.robotActionsEnabled && self.currentRobotActionState == ROBRobotActionStatePending;
@@ -3139,7 +3149,7 @@ didSelectDestinationLatitude:(double)latitude
 
     if (request == nil) {
         self.robotActionTitleLabel.text = self.robotActionsEnabled ?
-            @"AI Action: Waiting for request" : @"AI Action: Disabled (operator opt-in required)";
+            @"AI Action: Waiting for request" : (wantsRequests ? @"AI Action: Waiting for connection" : @"AI Action: Disabled");
         self.robotActionDetailLabel.text = @"No pending action. Legacy manual controls and the tread heartbeat are unchanged.";
         return;
     }
@@ -3236,12 +3246,22 @@ didSelectDestinationLatitude:(double)latitude
 
 - (IBAction)toggleRobotActionsEnabled:(id)sender
 {
-    if (self.robotActionsEnabled) {
-        [self setRobotActionsEnabled:NO
-                              reason:@"Operator disabled AI actions"];
-    } else {
-        [self setRobotActionsEnabled:YES reason:nil];
-    }
+    BOOL wantsRequests = ![NSUserDefaults.standardUserDefaults boolForKey:@"ROBAcceptActionApprovalRequests"];
+    [NSUserDefaults.standardUserDefaults setBool:wantsRequests forKey:@"ROBAcceptActionApprovalRequests"];
+    [self restoreRobotActionRequestPreference];
+}
+
+- (void)restoreRobotActionRequestPreference
+{
+    BOOL available = self.autoNetClient.isConnected &&
+        UIApplication.sharedApplication.applicationState == UIApplicationStateActive;
+    [self setRobotActionsEnabled:(available && [NSUserDefaults.standardUserDefaults boolForKey:@"ROBAcceptActionApprovalRequests"])
+                          reason:@"Approval console is unavailable; the receive-requests preference is preserved."];
+}
+
+- (void)robotActionConsoleDidBecomeActive:(NSNotification *)notification
+{
+    [self restoreRobotActionRequestPreference];
 }
 
 - (void)applicationWillResignActive:(NSNotification *)notification
@@ -3251,7 +3271,7 @@ didSelectDestinationLatitude:(double)latitude
     // manual takeover, or a local robot fault; backgrounding this UI does not
     // silently revoke or orphan that server-side session.
     [self setRobotActionsEnabled:NO
-                          reason:@"Controller resigned active; AI actions reset to Off"];
+                          reason:@"Controller left the foreground; operation approval suspended."];
     [self setMicrophoneActiveAppearance:NO];
     self.microphoneButtonHeld = NO;
     [self.microphoneStartCuePlayer stop];
@@ -3570,7 +3590,7 @@ didSelectDestinationLatitude:(double)latitude
 
 -(IBAction) reconnectAutoNet:(id)sender {
     //Reconnection Proceedure...needs to be embedded into autoNetClient API and pushed to Github repo
-    [self setRobotActionsEnabled:NO reason:@"AutoNet reconnect requested; AI actions reset to Off"];
+    [self setRobotActionsEnabled:NO reason:@"AutoNet reconnect requested; current approval cancelled"];
     self.didAnnounceRobotActionConsole = NO;
     [self.autoNetClient stop];
     [self.autoNetClient startBrowsing];
@@ -3592,6 +3612,8 @@ didSelectDestinationLatitude:(double)latitude
         : ROBControlAuthorityStateDisconnected;
     if (!isConnected) {
         [self setRobotActionsEnabled:NO reason:@"Controller disconnected; pending approval cancelled"];
+    } else {
+        [self restoreRobotActionRequestPreference];
     }
     [self.administratorWorkspaceViewController setConnectionAvailable:isConnected];
     [self refreshAutonomyConsole];

@@ -1,6 +1,12 @@
 # ROBController
 This is the controller software for my droid R.O.B.
 
+**Action Approvals** is a remembered preference for receiving requests, enabled
+by default. It resumes after an authenticated reconnect or return to the
+foreground; an explicit Off choice stays off. Disconnecting or backgrounding
+still cancels pending requests. Restoring the preference never approves a
+movement or replays an old request: each operation needs its own Approve tap.
+
 With **Action Approvals** enabled in the foreground, a new AI request plays a
 short two-note ping, gives a warning haptic on supported iPhones, and shows an
 orange **AI APPROVAL REQUESTED** banner above every tab with the time remaining.
@@ -15,6 +21,9 @@ Test AI Approval Sound + Vibration** to check them without requesting motion.
 lifecycle with inert UI/audio/transport substitutes: duplicate refreshes, one
 reminder, expiry, terminal-state cleanup, disconnect and background suppression.
 It does not send robot commands or establish physical sound/haptic output.
+`python3 Tests/ROBApprovalPreferenceRuntimeTests.py` checks preference recovery,
+explicit Off, foreground/connection gating and cancellation without an approval
+being created or replayed.
 
 For wireless iPhone development, use the **ROBController Wireless** scheme to
 run the Debug build without LLDB attached. See [wireless debugging](docs/wireless-debugging.md)

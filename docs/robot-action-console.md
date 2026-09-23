@@ -33,11 +33,28 @@ The connected actions are:
 
 ## Operator state model
 
-Robot actions default to **Off** on every launch. The operator must explicitly opt in before the controller advertises that it accepts proposals. When the app resigns active or AutoNet reconnects, opt-in resets to Off; returning to the app requires a new opt-in. A pending, unapproved proposal is cancelled. An approved/manual action remains nonterminal with stop/hold marked unconfirmed until the operator returns and reports Complete, Failed, or Cancel; losing the UI is not proof that hardware stopped.
+**Action Approvals** is a persisted preference for receiving proposals, enabled
+by default. Explicit Off persists across launches. The console advertises that
+it accepts requests only while foregrounded and authenticated to Cerebro.
+Disconnect/background suspends that availability and cancels pending proposals
+without erasing the preference. Reconnect/foreground restores availability, not
+approval: it cannot accept or replay a cancelled request. An approved/manual
+action remains nonterminal with stop/hold marked unconfirmed until a terminal
+outcome is reported; losing the UI is not proof that hardware stopped.
 
 The normal flow is:
 
-`Off -> operator opt-in -> pending -> accepted -> manual terminal result`
+`Receiving requests -> pending -> operator approves -> accepted -> terminal result`
+
+For Cerebro-owned `arm_operation`, `play_gesture` and `run_startup_test`, Cerebro
+performs the approved execution and reports the terminal result. Manual Complete
+and Failed are disabled for these operations; Cancel remains available.
+
+On 2026-09-23 the preference and notice runtime fixtures passed, as did the
+signed iOS build and signature verification. The update was installed and
+launched on Onix16. Debug-library SHA-256:
+`d519b559806e38d376cfefd67cde1ab0731f5d511557178892036507b33116dd`.
+This verifies installation, not physical arm execution or audible/haptic output.
 
 - **Pending:** The proposal is displayed for an operator decision. Approve, Reject, and Cancel are available.
 - **Accepted:** Approval reports permission only. The UI tells the operator to perform the action manually; ROBController still sends no hardware command. Complete, Failed, and Cancel are available.
