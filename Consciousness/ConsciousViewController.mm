@@ -84,6 +84,7 @@ typedef NS_ENUM(NSUInteger, ROBControlAuthorityState) {
 @property (nonatomic, retain) IBOutlet UITextView * textView;
 @property (atomic, retain) NSString *currentUserVerbalQueryString;
 @property (nonatomic, retain) IBOutlet UILabel * locationLabel;
+@property (nonatomic, assign) NSTimeInterval lastLidarTelemetryUptime;
 @property (nonatomic, retain) IBOutlet UILabel * rotationLabel;
 
 @property (readwrite, retain) CLLocationManager *locationManager;
@@ -1122,14 +1123,14 @@ typedef NS_ENUM(NSUInteger, ROBControlAuthorityState) {
     }
 
     UILabel *position = [UILabel new];
-    position.text = @"x:0.00  y:0.00  z:0.00";
+    position.text = @"SLAM XYZ unavailable";
     position.font = [UIFont monospacedDigitSystemFontOfSize:12 weight:UIFontWeightMedium];
     position.textColor = [self usesIPadCommandConsole] ? [self consoleAmberColor] : UIColor.labelColor;
     position.adjustsFontSizeToFitWidth = YES;
     position.minimumScaleFactor = 0.7;
     self.locationLabel = position;
     UILabel *rotation = [UILabel new];
-    rotation.text = @"yaw:0.00  pitch:0.00  roll:0.00";
+    rotation.text = @"Yaw / pitch / roll unavailable";
     rotation.font = [UIFont monospacedDigitSystemFontOfSize:12 weight:UIFontWeightMedium];
     rotation.textColor = [self usesIPadCommandConsole] ? [self consoleAmberColor] : UIColor.labelColor;
     rotation.textAlignment = NSTextAlignmentRight;
@@ -1506,6 +1507,7 @@ typedef NS_ENUM(NSUInteger, ROBControlAuthorityState) {
     };
     [[ROBRecycleMissionClient shared] connectionChanged];
     self.robotActionHelloTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 repeats:YES block:^(NSTimer *timer) {
+        [weakSelfForHello refreshLidarTelemetryAvailability];
         [weakSelfForHello announceRobotActionConsole];
         [weakSelfForHello retransmitPendingAutonomyCommand];
         [weakSelfForHello refreshAutonomyConsole];
@@ -3609,6 +3611,17 @@ didSelectDestinationLatitude:(double)latitude
     [self.autoNetClient startBrowsing];
 }
 
+- (void)refreshLidarTelemetryAvailability
+{
+    if (!self.autoNetClient.isConnected || self.lastLidarTelemetryUptime <= 0 ||
+        NSProcessInfo.processInfo.systemUptime - self.lastLidarTelemetryUptime > 2.0) {
+        self.locationLabel.text = @"SLAM XYZ unavailable";
+        self.rotationLabel.text = @"Yaw / pitch / roll unavailable";
+        [self.openStreetMapView updateRobotPose:nil];
+        [self.openStreetMapView updateLaserPoints:@[] headingRadians:0];
+    }
+}
+
 - (void)autoNetClient:(AutoNetClient *)client didChangeConnectionState:(BOOL)isConnected
 {
     if (client != self.autoNetClient) {
@@ -3624,6 +3637,8 @@ didSelectDestinationLatitude:(double)latitude
         ? ROBControlAuthorityStateUnknown
         : ROBControlAuthorityStateDisconnected;
     if (!isConnected) {
+        self.lastLidarTelemetryUptime = 0;
+        [self refreshLidarTelemetryAvailability];
         [self setRobotActionsEnabled:NO reason:@"Controller disconnected; pending approval cancelled"];
     } else {
         [self restoreRobotActionRequestPreference];
@@ -3698,34 +3713,24 @@ didSelectDestinationLatitude:(double)latitude
         dispatch_async(dispatch_get_main_queue(), ^{
             __weak ConsciousViewController *weakSelf = self;
             
-            NSMutableArray *lidarScan = [msg componentsSeparatedByString:@"\n"].mutableCopy;
-            if (lidarScan.count < 2) {
-                NSLog(@"Ignoring malformed RPLidar scan without position and pose headers");
+            NSString *sentAtText = messageDictionary[@"lidar.sentAtMilliseconds"];
+            if (sentAtText != nil) {
+                double sentAt = sentAtText.doubleValue / 1000.0;
+                double age = NSDate.date.timeIntervalSince1970 - sentAt;
+                if (!isfinite(sentAt) || sentAt <= 0 || age > 2.0 || age < -5.0) { return; }
+            }
+            ROBLidarDisplayScan *scan = [[ROBLidarDisplayScan alloc] initWithMessage:msg];
+            if (scan == nil) {
+                NSLog(@"Ignoring RPLidar scan with missing or invalid pose");
                 return;
             }
-            //x:y:z
-            NSArray *position = [lidarScan[0] componentsSeparatedByString:@":"];
-            [lidarScan removeObjectAtIndex:0];
-            if (position.count >= 3) {
-                weakSelf.locationLabel.text = [NSString stringWithFormat:@"x:%@  y:%@  z:%@", position[0], position[1], position[2]];
-            }
-            
-            //yaw:pitch:roll
-            NSArray *pose = [lidarScan[0] componentsSeparatedByString:@":"];
-            [lidarScan removeObjectAtIndex:0];
-            double robotYaw = pose.count > 0 ? [pose[0] doubleValue] : self.yaw;
-            double robotPitch = pose.count > 1 ? [pose[1] doubleValue] : self.pitch;
-            double robotRoll = pose.count > 2 ? [pose[2] doubleValue] : self.roll;
-            double robotHeadingRadians = fabs(robotYaw) > (M_PI * 2.0)
-                ? robotYaw * M_PI / 180.0
-                : robotYaw;
-            weakSelf.rotationLabel.text = [NSString stringWithFormat:@"yaw:%.2f  pitch:%.2f  roll:%.2f", robotYaw, robotPitch, robotRoll];
-
-            //laserPoint-distance:angle
-            
-            weakSelf.rpLidarPolarView.laserPoints = lidarScan;
+            weakSelf.lastLidarTelemetryUptime = NSProcessInfo.processInfo.systemUptime;
+            weakSelf.locationLabel.text = scan.pose.positionText;
+            weakSelf.rotationLabel.text = scan.pose.rotationText;
+            weakSelf.rpLidarPolarView.laserPoints = scan.points;
             [weakSelf.rpLidarPolarView setNeedsDisplay];
-            [weakSelf.openStreetMapView updateLaserPoints:lidarScan headingRadians:robotHeadingRadians];
+            [weakSelf.openStreetMapView updateRobotPose:scan.pose];
+            [weakSelf.openStreetMapView updateLaserPoints:scan.points headingRadians:scan.pose.yaw];
         });
     }
     if ([sender isEqualToString:@"rpLidar.map"]) {

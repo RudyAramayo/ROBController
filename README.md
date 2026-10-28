@@ -38,6 +38,25 @@ It requires a current Cerebro build, an authenticated controller session, and
 fresh depth, belly-camera safety and lidar data. Read the displayed blocker
 instead of bypassing a missing sensor or calibration gate.
 
+The map's SLAM pose panel shows X/Y/Z in metres and yaw/pitch/roll in degrees,
+with a cyan heading arrow. Angles arrive from Slamware in counterclockwise
+radians from +X; they are not compass bearings. Z, pitch and roll are displayed
+as supplied, including zeros from a 2D mapper. Missing/disconnected telemetry
+expires after two seconds instead of displaying a fabricated zero pose.
+
+Pose display requires Cerebro's lidar display relay: older Cerebro builds
+consume binary RLS1 scans for autonomy but do not send the text archive this
+controller expects. The relay supports both authenticated local IPC and QUIC
+publisher input. A legacy occupancy image without origin and resolution is
+labelled uncalibrated and is not drawn as a guessed 20-metre square.
+
+Geometry and pose parsing fixtures:
+
+```sh
+swiftc Consciousness/RPLidarMapTransform.swift Tests/RPLidarMapTransformFixtureTests.swift -o /tmp/robcontroller-lidar-tests
+/tmp/robcontroller-lidar-tests
+```
+
 On the RPLidar map, long-press ROB's actual position to calibrate the perceived
 lidar location. The map settings menu also provides **Set ROB to Map Center**
 and **Use Device GPS**; the persisted east/north correction follows subsequent

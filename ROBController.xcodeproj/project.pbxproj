@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        A7E6A0012026102700000001 /* RPLidarMapTransform.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E6A0022026102700000001 /* RPLidarMapTransform.swift */; };
 		D4AA01012F7D000100000001 /* ai_approval.wav in Resources */ = {isa = PBXBuildFile; fileRef = D4AA01022F7D000100000001 /* ai_approval.wav */; };
 		D4AD00012F10000100000001 /* ROBAdministratorTerminalViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4AD00022F10000100000001 /* ROBAdministratorTerminalViewController.swift */; };
 		D4AD00032F10000100000001 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = D4AD00052F10000100000001 /* SwiftTerm */; };
@@ -114,6 +115,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+        A7E6A0022026102700000001 /* RPLidarMapTransform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RPLidarMapTransform.swift; sourceTree = "<group>"; };
 		D4AA01022F7D000100000001 /* ai_approval.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = ai_approval.wav; sourceTree = "<group>"; };
 		D4AD00022F10000100000001 /* ROBAdministratorTerminalViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ROBAdministratorTerminalViewController.swift; sourceTree = "<group>"; };
 		D4AF00032F51000100000001 /* ROBRemoteDesktopVideoClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ROBRemoteDesktopVideoClient.swift; sourceTree = "<group>"; };
@@ -308,6 +310,7 @@
 				D4C120022F03000100000001 /* SceneDelegate.m */,
 				D4D1592A28027EE000AFFA1E /* RPLidarPolarView.swift */,
 				D4D1592C28027EE000AFFA1E /* RPLidarMapView.swift */,
+				A7E6A0022026102700000001 /* RPLidarMapTransform.swift */,
 				EA8727DD20A924C00015A7DF /* ConsciousViewController.h */,
 				EA8727DE20A924C00015A7DF /* ConsciousViewController.mm */,
 				D4DD62E42E371CB200844D2B /* RPLidarMapController.swift */,
@@ -563,6 +566,7 @@
 				EA6B40C820B0912500422C7C /* DaydreamView.m in Sources */,
 				D4D1592B28027EE000AFFA1E /* RPLidarPolarView.swift in Sources */,
 				D4D1592D28027EE000AFFA1E /* RPLidarMapView.swift in Sources */,
+				A7E6A0012026102700000001 /* RPLidarMapTransform.swift in Sources */,
 				EA8727DC20A924C00015A7DF /* AppDelegate.m in Sources */,
 				D4C120032F03000100000001 /* SceneDelegate.m in Sources */,
 				D49D756127FFE52800142E26 /* AutoNetDataTransferProtocol.swift in Sources */,
