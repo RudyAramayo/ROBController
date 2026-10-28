@@ -50,3 +50,5 @@ Choosing **Use as Destination** on a saved stop sends it through the existing
 navigation authorization and Cerebro safety checks.
 
 <img width="2622" height="1206" alt="IMG_5920" src="https://github.com/user-attachments/assets/15715bee-f526-4fcc-9982-b98e69a292a2" />
+
+The map Missions menu also includes [Recycle Cans](docs/recycle-cans-mission.md), with Orange bucket as the saved destination, room-search bounds, live progress and Stop.

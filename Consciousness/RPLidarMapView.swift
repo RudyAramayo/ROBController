@@ -12,6 +12,8 @@ import UIKit
 
 @objc(ROBOpenStreetMapViewDelegate)
 public protocol ROBOpenStreetMapViewDelegate: NSObjectProtocol {
+    func openStreetMapViewDidRequestRecycleCans(_ mapView: ROBOpenStreetMapView)
+
     func openStreetMapViewDidRequestSearch(_ mapView: ROBOpenStreetMapView)
 
     func openStreetMapView(
@@ -414,7 +416,7 @@ public final class ROBOpenStreetMapView: UIView, MKMapViewDelegate, UIGestureRec
             symbol: "point.topleft.down.curvedto.point.bottomright.up",
             action: #selector(missionPressed)
         )
-        missionButton.accessibilityLabel = "Mission path tools"
+        missionButton.accessibilityLabel = "Missions and saved paths"
         missionButton.showsMenuAsPrimaryAction = true
         rebuildMissionMenu()
 
@@ -542,6 +544,10 @@ public final class ROBOpenStreetMapView: UIView, MKMapViewDelegate, UIGestureRec
 
     private func rebuildMissionMenu() {
         var children: [UIMenuElement] = [
+            UIAction(title: "Recycle Cans", image: UIImage(systemName: "arrow.3.trianglepath")) { [weak self] _ in
+                guard let self else { return }
+                self.mapDelegate?.openStreetMapViewDidRequestRecycleCans(self)
+            },
             UIAction(title: "New Mission…", image: UIImage(systemName: "plus")) { [weak self] _ in
                 self?.presentNewMissionPrompt()
             }
@@ -632,7 +638,7 @@ public final class ROBOpenStreetMapView: UIView, MKMapViewDelegate, UIGestureRec
             })
         }
 
-        missionButton.menu = UIMenu(title: "Mission Paths", children: children)
+        missionButton.menu = UIMenu(title: "Missions", children: children)
         var configuration = missionButton.configuration
         configuration?.title = missionStore.activeMission?.name ?? "Missions"
         missionButton.configuration = configuration

@@ -75,6 +75,8 @@
 		4D3FF2260D5003E6808AFD77 /* ROBBubbleProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D149252C2727BBC0FD1CDC4 /* ROBBubbleProtocol.swift */; };
 		63CC58FEF58F18C1F0656119 /* ROBBubbleConsole.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF76FC6200024EF73E7F0480 /* ROBBubbleConsole.swift */; };
 		8261A0013DB82A9B75D933F8 /* ROBBubbleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3F56CA915373DE4D3671B3F /* ROBBubbleViewController.swift */; };
+		DBDC5EF4034DF84DC05BBA1E /* ROBRecycleMissionProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12CE12AE13690E455D9E7779 /* ROBRecycleMissionProtocol.swift */; };
+		B29B8A09A96BCBB5D20B18EE /* ROBRecycleMissionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3377188B078304EE8CAE528B /* ROBRecycleMissionViewController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -196,6 +198,8 @@
 		4D149252C2727BBC0FD1CDC4 /* ROBBubbleProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ROBBubbleProtocol.swift; sourceTree = "<group>"; };
 		FF76FC6200024EF73E7F0480 /* ROBBubbleConsole.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ROBBubbleConsole.swift; sourceTree = "<group>"; };
 		B3F56CA915373DE4D3671B3F /* ROBBubbleViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ROBBubbleViewController.swift; sourceTree = "<group>"; };
+		12CE12AE13690E455D9E7779 /* ROBRecycleMissionProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ROBRecycleMissionProtocol.swift; sourceTree = "<group>"; };
+		3377188B078304EE8CAE528B /* ROBRecycleMissionViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ROBRecycleMissionViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -308,6 +312,8 @@
 				EA8727DE20A924C00015A7DF /* ConsciousViewController.mm */,
 				D4DD62E42E371CB200844D2B /* RPLidarMapController.swift */,
 				D4F100012F00000100000001 /* ROBRobotActionProtocol.swift */,
+				3377188B078304EE8CAE528B /* ROBRecycleMissionViewController.swift */,
+				12CE12AE13690E455D9E7779 /* ROBRecycleMissionProtocol.swift */,
 				D4A710012F01000100000001 /* ROBWatchCommandProtocol.swift */,
 				EA6B40C620B0912400422C7C /* DaydreamView.h */,
 				EA6B40C720B0912400422C7C /* DaydreamView.m */,
@@ -561,6 +567,8 @@
 				D4C120032F03000100000001 /* SceneDelegate.m in Sources */,
 				D49D756127FFE52800142E26 /* AutoNetDataTransferProtocol.swift in Sources */,
 				D4F100022F00000100000001 /* ROBRobotActionProtocol.swift in Sources */,
+				B29B8A09A96BCBB5D20B18EE /* ROBRecycleMissionViewController.swift in Sources */,
+				DBDC5EF4034DF84DC05BBA1E /* ROBRecycleMissionProtocol.swift in Sources */,
 				EA8727FE20A925570015A7DF /* AudioController.mm in Sources */,
 				EA87280020A925570015A7DF /* DCRejectionFilter.cpp in Sources */,
 				EA8727FC20A925570015A7DF /* EAGLView.mm in Sources */,

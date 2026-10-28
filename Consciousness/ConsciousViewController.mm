@@ -1498,10 +1498,18 @@ typedef NS_ENUM(NSUInteger, ROBControlAuthorityState) {
     [self.autoNetClient start];
     self.watchRelay = [[ROBWatchRelay alloc] initWithAutoNetClient:self.autoNetClient];
     __weak ConsciousViewController *weakSelfForHello = self;
+    [ROBRecycleMissionClient shared].sendData = ^(NSData *data) {
+        if (weakSelfForHello.autoNetClient.isConnected) { [weakSelfForHello.autoNetClient sendWithData:data]; }
+    };
+    [ROBRecycleMissionClient shared].connected = ^BOOL{
+        return weakSelfForHello.autoNetClient.isPairingConfigured && weakSelfForHello.autoNetClient.isConnected;
+    };
+    [[ROBRecycleMissionClient shared] connectionChanged];
     self.robotActionHelloTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 repeats:YES block:^(NSTimer *timer) {
         [weakSelfForHello announceRobotActionConsole];
         [weakSelfForHello retransmitPendingAutonomyCommand];
         [weakSelfForHello refreshAutonomyConsole];
+        [[ROBRecycleMissionClient shared] connectionChanged];
     }];
     [self refreshAutonomyConsole];
     //Aurora Setup audio tap conflicts with speech audio tap...???
@@ -2474,6 +2482,11 @@ typedef NS_ENUM(NSUInteger, ROBControlAuthorityState) {
         [weakSelf searchOpenStreetMapForDestination:query];
     }]];
     [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)openStreetMapViewDidRequestRecycleCans:(ROBOpenStreetMapView *)mapView
+{
+    [[ROBRecycleMissionClient shared] presentFrom:self];
 }
 
 - (void)openStreetMapViewDidRequestSearch:(ROBOpenStreetMapView *)mapView
@@ -3620,6 +3633,7 @@ didSelectDestinationLatitude:(double)latitude
 }
 
 - (void) didReceiveData:(NSData *)data {
+    if ([[ROBRecycleMissionClient shared] consume:data]) { return; }
     if ([self.administratorWorkspaceViewController handleIncomingData:data]) {
         return;
     }
